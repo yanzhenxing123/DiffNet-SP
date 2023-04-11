@@ -11,13 +11,17 @@ class diffnetplus():
     def __init__(self, conf):
         self.conf = conf
         self.supply_set = (
-            'SOCIAL_NEIGHBORS_SPARSE_MATRIX',  # 社交邻居稀疏矩阵
-            'CONSUMED_ITEMS_SPARSE_MATRIX',  # 消费项稀疏矩阵
-            'ITEM_CUSTOMER_SPARSE_MATRIX'  # 项目_客户_稀疏矩阵
+            'SOCIAL_NEIGHBORS_SPARSE_MATRIX',  # user_user 稀疏矩阵
+            'CONSUMED_ITEMS_SPARSE_MATRIX',  # user_item 稀疏矩阵
+            'ITEM_CUSTOMER_SPARSE_MATRIX'  # item_user 稀疏矩阵
         )
 
     def startConstructGraph(self):
-        self.initializeNodes() # 初始化节点
+        """
+        创建训练模型
+        :return:
+        """
+        self.initializeNodes()
         self.constructTrainGraph()
         self.saveVariables()
         self.defineMap()
@@ -25,7 +29,7 @@ class diffnetplus():
     def inputSupply(self, data_dict):
         low_att_std = 1.0
 
-        ########  Node Attention initialization ########
+        ########  Node Attention initialization attention节点初始化 ########
 
         # ----------------------
         # user-user social network node attention initialization
@@ -70,7 +74,7 @@ class diffnetplus():
         self.consumed_items_indices_input = data_dict['CONSUMED_ITEMS_INDICES_INPUT']
         self.consumed_items_values_input = data_dict['CONSUMED_ITEMS_VALUES_INPUT']
         # self.consumed_items_values_input1 = tf.Variable(tf.random_normal([len(self.consumed_items_indices_input)], stddev=0.01))
-        self.consumed_items_values_input1 = tf.reduce_sum(tf.math.exp(self.first_low_att_layer_for_user_item_layer1( \
+        self.consumed_items_values_input1 = tf.reduce_sum(tf.math.exp(self.first_low_att_layer_for_user_item_layer1(
             tf.reshape(tf.Variable(tf.random_normal([len(self.consumed_items_indices_input)], stddev=low_att_std)),
                        [-1, 1]))), 1)
 
