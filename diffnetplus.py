@@ -27,32 +27,47 @@ class diffnetplus():
         self.defineMap()
 
     def inputSupply(self, data_dict):
+        """
+        提供输入数据
+        :param data_dict:
+        :return:
+        """
         low_att_std = 1.0
 
-        ########  Node Attention initialization attention节点初始化 ########
+        #  Node Attention initialization  Attention节点初始化 构建图神经网路
 
         # ----------------------
         # user-user social network node attention initialization
-        self.first_low_att_layer_for_social_neighbors_layer1 = tf.layers.Dense(1, activation=tf.nn.sigmoid,
+        self.first_low_att_layer_for_social_neighbors_layer1 = tf.layers.Dense(units=1,  # 输出神经元的数量
+                                                                               activation=tf.nn.sigmoid,
                                                                                name='first_low_att_SN_layer1')
-        self.first_low_att_layer_for_social_neighbors_layer2 = tf.layers.Dense(1, activation=tf.nn.leaky_relu,
+        self.first_low_att_layer_for_social_neighbors_layer2 = tf.layers.Dense(units=1,  # 输出神经元的数量
+                                                                               activation=tf.nn.leaky_relu,
                                                                                name='first_low_att_SN_layer2')
 
         self.social_neighbors_indices_input = data_dict['SOCIAL_NEIGHBORS_INDICES_INPUT']
         self.social_neighbors_values_input = data_dict['SOCIAL_NEIGHBORS_VALUES_INPUT']
 
         self.social_neighbors_values_input1 = tf.reduce_sum(
-            tf.math.exp(self.first_low_att_layer_for_social_neighbors_layer1( \
-                tf.reshape(
-                    tf.Variable(tf.random_normal([len(self.social_neighbors_indices_input)], stddev=low_att_std)),
-                    [-1, 1]))), 1)
+            tf.math.exp(
+                self.first_low_att_layer_for_social_neighbors_layer1(
+                    tf.reshape(
+                        tf.Variable(
+                            tf.random_normal([len(self.social_neighbors_indices_input)], stddev=low_att_std)
+                        ), [-1, 1]
+                    )
+                )
+            ), 1
+        )
 
         first_mean_social_influ, first_var_social_influ = tf.nn.moments(self.social_neighbors_values_input1, axes=0)
         self.first_user_user_low_att = [first_mean_social_influ, first_var_social_influ]
 
-        self.second_low_att_layer_for_social_neighbors_layer1 = tf.layers.Dense(1, activation=tf.nn.sigmoid,
+        self.second_low_att_layer_for_social_neighbors_layer1 = tf.layers.Dense(units=1,
+                                                                                activation=tf.nn.sigmoid,
                                                                                 name='second_low_att_SN_layer1')
-        self.second_low_att_layer_for_social_neighbors_layer2 = tf.layers.Dense(1, activation=tf.nn.leaky_relu,
+        self.second_low_att_layer_for_social_neighbors_layer2 = tf.layers.Dense(units=1,
+                                                                                activation=tf.nn.leaky_relu,
                                                                                 name='second_low_att_SN_layer2')
         self.social_neighbors_values_input2 = tf.reduce_sum(
             tf.math.exp(self.second_low_att_layer_for_social_neighbors_layer1( \
