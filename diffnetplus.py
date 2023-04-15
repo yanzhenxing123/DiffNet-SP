@@ -101,7 +101,7 @@ class diffnetplus():
         self.second_low_att_layer_for_user_item_layer2 = tf.layers.Dense(1, activation=tf.nn.leaky_relu,
                                                                          name='second_low_att_UI_layer2')
         # self.consumed_items_values_input2 = tf.Variable(tf.random_normal([len(self.consumed_items_indices_input)], stddev=0.01))
-        self.consumed_items_values_input2 = tf.reduce_sum(tf.math.exp(self.second_low_att_layer_for_user_item_layer1( \
+        self.consumed_items_values_input2 = tf.reduce_sum(tf.math.exp(self.second_low_att_layer_for_user_item_layer1(
             tf.reshape(tf.Variable(tf.random_normal([len(self.consumed_items_indices_input)], stddev=1.0)), [-1, 1]))),
             1)
 
@@ -393,12 +393,13 @@ class diffnetplus():
         self.item_embedding = tf.Variable(
             tf.random_normal([self.conf.num_items, self.conf.dimension], stddev=0.01), name='item_embedding')
 
-        self.user_review_vector_matrix = tf.constant( \
-            np.load(self.conf.user_review_vector_matrix), dtype=tf.float32)
-        self.item_review_vector_matrix = tf.constant( \
-            np.load(self.conf.item_review_vector_matrix), dtype=tf.float32)
-        self.reduce_dimension_layer = tf.layers.Dense( \
-            self.conf.dimension, activation=tf.nn.sigmoid, name='reduce_dimension_layer')
+        self.user_review_vector_matrix = tf.constant(np.load(self.conf.user_review_vector_matrix), dtype=tf.float32)
+        self.item_review_vector_matrix = tf.constant(np.load(self.conf.item_review_vector_matrix), dtype=tf.float32)
+        self.reduce_dimension_layer = tf.layers.Dense(
+            self.conf.dimension,
+            activation=tf.nn.sigmoid,
+            name='reduce_dimension_layer'
+        )
 
         ########  Fine-grained Graph Attention initialization ########
         # ----------------------
