@@ -37,16 +37,17 @@ class diffnetplus():
         #  Node Attention initialization  Attention节点初始化 构建图神经网路
 
         # ----------------------
-        # user-user social network node attention initialization
-        self.first_low_att_layer_for_social_neighbors_layer1 = tf.layers.Dense(units=1,  # 输出神经元的数量
-                                                                               activation=tf.nn.sigmoid,
+        # user-user social network node attention initialization # 用户-用户社交网络节点注意力初始化
+        self.first_low_att_layer_for_social_neighbors_layer1 = tf.layers.Dense(units=1,  # 输出神经元的数量 原来为1 还是为1
+                                                                               activation=tf.nn.sigmoid,  # sigmoid激活函数
                                                                                name='first_low_att_SN_layer1')
+
         self.first_low_att_layer_for_social_neighbors_layer2 = tf.layers.Dense(units=1,  # 输出神经元的数量
-                                                                               activation=tf.nn.leaky_relu,
+                                                                               activation=tf.nn.leaky_relu,  # relu激活函数
                                                                                name='first_low_att_SN_layer2')
 
-        self.social_neighbors_indices_input = data_dict['SOCIAL_NEIGHBORS_INDICES_INPUT']
-        self.social_neighbors_values_input = data_dict['SOCIAL_NEIGHBORS_VALUES_INPUT']
+        self.social_neighbors_indices_input = data_dict['SOCIAL_NEIGHBORS_INDICES_INPUT']  # 259014
+        self.social_neighbors_values_input = data_dict['SOCIAL_NEIGHBORS_VALUES_INPUT']  # 259014
 
         self.social_neighbors_values_input1 = tf.reduce_sum(
             tf.math.exp(
@@ -55,31 +56,43 @@ class diffnetplus():
                         tf.Variable(
                             tf.random_normal([len(self.social_neighbors_indices_input)], stddev=low_att_std)
                         ), [-1, 1]
+                    )  # 每一层为一个向量
+                )
+            ), 1
+        )  # shape=(259014,) 得到一维的向量
+
+        first_mean_social_influ, first_var_social_influ = tf.nn.moments(self.social_neighbors_values_input1,
+                                                                        axes=0)  # 均值和方差
+        self.first_user_user_low_att = [first_mean_social_influ, first_var_social_influ]  # 均值和方差
+
+        # second_low attention 和上边一样
+        self.second_low_att_layer_for_social_neighbors_layer1 = tf.layers.Dense(units=1,  # 输出神经元的数量 原来为1 还是为1
+                                                                                activation=tf.nn.sigmoid,  # sigmoid激活函数
+                                                                                name='second_low_att_SN_layer1')
+        self.second_low_att_layer_for_social_neighbors_layer2 = tf.layers.Dense(units=1,  # 输出神经元的数量 原来为1 还是为1
+                                                                                activation=tf.nn.leaky_relu,
+                                                                                name='second_low_att_SN_layer2')
+
+        self.social_neighbors_values_input2 = tf.reduce_sum(
+            tf.math.exp(
+                self.second_low_att_layer_for_social_neighbors_layer1(
+                    tf.reshape(
+                        tf.Variable(
+                            tf.random_normal([len(self.social_neighbors_indices_input)], stddev=1.0)
+                        ), [-1, 1]
                     )
                 )
             ), 1
         )
 
-        first_mean_social_influ, first_var_social_influ = tf.nn.moments(self.social_neighbors_values_input1, axes=0)
-        self.first_user_user_low_att = [first_mean_social_influ, first_var_social_influ]
-
-        self.second_low_att_layer_for_social_neighbors_layer1 = tf.layers.Dense(units=1,
-                                                                                activation=tf.nn.sigmoid,
-                                                                                name='second_low_att_SN_layer1')
-        self.second_low_att_layer_for_social_neighbors_layer2 = tf.layers.Dense(units=1,
-                                                                                activation=tf.nn.leaky_relu,
-                                                                                name='second_low_att_SN_layer2')
-        self.social_neighbors_values_input2 = tf.reduce_sum(
-            tf.math.exp(self.second_low_att_layer_for_social_neighbors_layer1( \
-                tf.reshape(tf.Variable(tf.random_normal([len(self.social_neighbors_indices_input)], stddev=1.0)),
-                           [-1, 1]))), 1)
-
+        # self.social_neighbors_values_input1 和 self.social_neighbors_values_input2一样
         self.social_neighbors_values_input3 = tf.Variable(
-            tf.random_normal([len(self.social_neighbors_indices_input)], stddev=0.01))
-        self.social_neighbors_num_input = 1.0 / np.reshape(data_dict['SOCIAL_NEIGHBORS_NUM_INPUT'], [-1, 1])
+            tf.random_normal([len(self.social_neighbors_indices_input)], stddev=0.01)
+        )
+        self.social_neighbors_num_input = 1.0 / np.reshape(data_dict['SOCIAL_NEIGHBORS_NUM_INPUT'], [-1, 1]) # 无用
 
         # ----------------------
-        # user-item interest graph node attention initialization
+        # user-item interest graph node attention initialization # 用户-物品兴趣图节点attention初始化
         self.first_low_att_layer_for_user_item_layer1 = tf.layers.Dense(1, activation=tf.nn.sigmoid,
                                                                         name='first_low_att_UI_layer1')
         self.first_low_att_layer_for_user_item_layer2 = tf.layers.Dense(1, activation=tf.nn.leaky_relu,
