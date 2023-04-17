@@ -198,11 +198,14 @@ class diffnetplus():
 
         # ----------------------
         # 4. prepare the shape of sparse matrice # 准备稀疏矩阵的形状
-        self.social_neighbors_dense_shape = np.array([self.conf.num_users, self.conf.num_users]).astype(np.int64)
-        self.consumed_items_dense_shape = np.array([self.conf.num_users, self.conf.num_items]).astype(np.int64)
-        self.item_customer_dense_shape = np.array([self.conf.num_items, self.conf.num_users]).astype(np.int64)
+        self.social_neighbors_dense_shape = np.array([self.conf.num_users,
+                                                      self.conf.num_users]).astype(np.int64)  # [17237, 38342]
+        self.consumed_items_dense_shape = np.array([self.conf.num_users,
+                                                    self.conf.num_items]).astype(np.int64)  # [17237, 38342]
+        self.item_customer_dense_shape = np.array([self.conf.num_items,
+                                                   self.conf.num_users]).astype(np.int64)  # [38342, 17237]
 
-        ########  Rough Graph Attention initialization ########
+        ########  Rough Graph Attention initialization ######## # 粗糙图attention初始化
         # ----------------------
         # User part
         # First Layer Influence:
