@@ -117,6 +117,7 @@ class diffnetplus():
             ), 1
         )  # 185869
 
+        # 均值、方差
         first_mean_social_influ, first_var_social_influ = tf.nn.moments(self.consumed_items_values_input1, axes=0)
         self.first_user_item_low_att = [first_mean_social_influ, first_var_social_influ]
 
@@ -156,29 +157,47 @@ class diffnetplus():
 
         self.item_customer_indices_input = data_dict['ITEM_CUSTOMER_INDICES_INPUT']
         self.item_customer_values_input = data_dict['ITEM_CUSTOMER_VALUES_INPUT']
-        # self.item_customer_values_input1 = tf.Variable(tf.random_normal([len(self.item_customer_indices_input)], stddev=0.01))
-        self.item_customer_values_input1 = tf.reduce_sum(tf.math.exp(self.first_low_att_layer_for_item_user_layer1( \
-            tf.reshape(tf.Variable(tf.random_normal([len(self.item_customer_indices_input)], stddev=low_att_std)),
-                       [-1, 1]))), 1)
+        self.item_customer_values_input1 = tf.reduce_sum(
+            tf.math.exp(
+                self.first_low_att_layer_for_item_user_layer1(
+                    tf.reshape(
+                        tf.Variable(
+                            tf.random_normal(
+                                [len(self.item_customer_indices_input)], stddev=low_att_std)
+                        ), [-1, 1]
+                    )
+                )
+            ), 1
+        )
 
         first_mean_social_influ, first_var_social_influ = tf.nn.moments(self.item_customer_values_input1, axes=0)
         self.first_item_user_low_att = [first_mean_social_influ, first_var_social_influ]
 
-        self.second_low_att_layer_for_item_user_layer1 = tf.layers.Dense(1, activation=tf.nn.sigmoid,
+        self.second_low_att_layer_for_item_user_layer1 = tf.layers.Dense(1,
+                                                                         activation=tf.nn.sigmoid,
                                                                          name='second_low_att_IU_layer1')
-        self.second_low_att_layer_for_item_user_layer2 = tf.layers.Dense(1, activation=tf.nn.leaky_relu,
+        self.second_low_att_layer_for_item_user_layer2 = tf.layers.Dense(1,
+                                                                         activation=tf.nn.leaky_relu,
                                                                          name='second_low_att_IU_layer2')
-        # self.item_customer_values_input2 = tf.Variable(tf.random_normal([len(self.item_customer_indices_input)], stddev=0.01))
-        self.item_customer_values_input2 = tf.reduce_sum(tf.math.exp(self.second_low_att_layer_for_item_user_layer1( \
-            tf.reshape(tf.Variable(tf.random_normal([len(self.item_customer_indices_input)], stddev=0.01)), [-1, 1]))),
-            1)
+        self.item_customer_values_input2 = tf.reduce_sum(
+            tf.math.exp(
+                self.second_low_att_layer_for_item_user_layer1(
+                    tf.reshape(
+                        tf.Variable(
+                            tf.random_normal(
+                                [len(self.item_customer_indices_input)], stddev=0.01
+                            )
+                        ), [-1, 1]
+                    )
+                )
+            ), 1)
 
         self.item_customer_values_input3 = tf.Variable(
             tf.random_normal([len(self.item_customer_indices_input)], stddev=0.01))
         self.item_customer_num_input = 1.0 / np.reshape(data_dict['ITEM_CUSTOMER_NUM_INPUT'], [-1, 1])
 
         # ----------------------
-        # prepare the shape of sparse matrice
+        # 4. prepare the shape of sparse matrice
         self.social_neighbors_dense_shape = np.array([self.conf.num_users, self.conf.num_users]).astype(np.int64)
         self.consumed_items_dense_shape = np.array([self.conf.num_users, self.conf.num_items]).astype(np.int64)
         self.item_customer_dense_shape = np.array([self.conf.num_items, self.conf.num_users]).astype(np.int64)
