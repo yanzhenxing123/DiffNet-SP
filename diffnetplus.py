@@ -197,7 +197,7 @@ class diffnetplus():
         self.item_customer_num_input = 1.0 / np.reshape(data_dict['ITEM_CUSTOMER_NUM_INPUT'], [-1, 1])
 
         # ----------------------
-        # 4. prepare the shape of sparse matrice
+        # 4. prepare the shape of sparse matrice # 准备稀疏矩阵的形状
         self.social_neighbors_dense_shape = np.array([self.conf.num_users, self.conf.num_users]).astype(np.int64)
         self.consumed_items_dense_shape = np.array([self.conf.num_users, self.conf.num_items]).astype(np.int64)
         self.item_customer_dense_shape = np.array([self.conf.num_items, self.conf.num_users]).astype(np.int64)
