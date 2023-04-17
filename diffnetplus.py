@@ -37,7 +37,7 @@ class diffnetplus():
         #  Node Attention initialization  Attention节点初始化 构建图神经网路
 
         # ----------------------
-        # user-user social network node attention initialization # 用户-用户社交网络节点注意力初始化
+        # 1. user-user social network node attention initialization # user-user 社交网络节点注意力初始化
         self.first_low_att_layer_for_social_neighbors_layer1 = tf.layers.Dense(units=1,  # 输出神经元的数量 原来为1 还是为1
                                                                                activation=tf.nn.sigmoid,  # sigmoid激活函数
                                                                                name='first_low_att_SN_layer1')
@@ -65,7 +65,7 @@ class diffnetplus():
                                                                         axes=0)  # 均值和方差
         self.first_user_user_low_att = [first_mean_social_influ, first_var_social_influ]  # 均值和方差
 
-        # second_low attention 和上边一样
+        # second_low attention # 和上边一样
         self.second_low_att_layer_for_social_neighbors_layer1 = tf.layers.Dense(units=1,  # 输出神经元的数量 原来为1 还是为1
                                                                                 activation=tf.nn.sigmoid,  # sigmoid激活函数
                                                                                 name='second_low_att_SN_layer1')
@@ -85,48 +85,73 @@ class diffnetplus():
             ), 1
         )
 
-        # self.social_neighbors_values_input1 和 self.social_neighbors_values_input2一样
         self.social_neighbors_values_input3 = tf.Variable(
             tf.random_normal([len(self.social_neighbors_indices_input)], stddev=0.01)
         )
-        self.social_neighbors_num_input = 1.0 / np.reshape(data_dict['SOCIAL_NEIGHBORS_NUM_INPUT'], [-1, 1]) # 无用
+        self.social_neighbors_num_input = 1.0 / np.reshape(data_dict['SOCIAL_NEIGHBORS_NUM_INPUT'],
+                                                           [-1, 1])  # user' friends 17237
 
         # ----------------------
-        # user-item interest graph node attention initialization # 用户-物品兴趣图节点attention初始化
-        self.first_low_att_layer_for_user_item_layer1 = tf.layers.Dense(1, activation=tf.nn.sigmoid,
+        # 2. user-item interest graph node attention initialization # user-item 图节点attention初始化
+        self.first_low_att_layer_for_user_item_layer1 = tf.layers.Dense(1,
+                                                                        activation=tf.nn.sigmoid,
                                                                         name='first_low_att_UI_layer1')
-        self.first_low_att_layer_for_user_item_layer2 = tf.layers.Dense(1, activation=tf.nn.leaky_relu,
+        self.first_low_att_layer_for_user_item_layer2 = tf.layers.Dense(1,
+                                                                        activation=tf.nn.leaky_relu,
                                                                         name='first_low_att_UI_layer2')
 
         self.user_item_sparsity_dict = data_dict['USER_ITEM_SPARSITY_DICT']
         self.consumed_items_indices_input = data_dict['CONSUMED_ITEMS_INDICES_INPUT']
         self.consumed_items_values_input = data_dict['CONSUMED_ITEMS_VALUES_INPUT']
-        # self.consumed_items_values_input1 = tf.Variable(tf.random_normal([len(self.consumed_items_indices_input)], stddev=0.01))
-        self.consumed_items_values_input1 = tf.reduce_sum(tf.math.exp(self.first_low_att_layer_for_user_item_layer1(
-            tf.reshape(tf.Variable(tf.random_normal([len(self.consumed_items_indices_input)], stddev=low_att_std)),
-                       [-1, 1]))), 1)
+        self.consumed_items_values_input1 = tf.reduce_sum(
+            tf.math.exp(
+                self.first_low_att_layer_for_user_item_layer1(
+                    tf.reshape(
+                        tf.Variable(
+                            tf.random_normal(
+                                [len(self.consumed_items_indices_input)], stddev=low_att_std
+                            )
+                        ), [-1, 1]
+                    )
+                )
+            ), 1
+        )  # 185869
 
         first_mean_social_influ, first_var_social_influ = tf.nn.moments(self.consumed_items_values_input1, axes=0)
         self.first_user_item_low_att = [first_mean_social_influ, first_var_social_influ]
 
-        self.second_low_att_layer_for_user_item_layer1 = tf.layers.Dense(1, activation=tf.nn.sigmoid,
+        self.second_low_att_layer_for_user_item_layer1 = tf.layers.Dense(1,
+                                                                         activation=tf.nn.sigmoid,
                                                                          name='second_low_att_UI_layer1')
-        self.second_low_att_layer_for_user_item_layer2 = tf.layers.Dense(1, activation=tf.nn.leaky_relu,
+        self.second_low_att_layer_for_user_item_layer2 = tf.layers.Dense(1,
+                                                                         activation=tf.nn.leaky_relu,
                                                                          name='second_low_att_UI_layer2')
-        # self.consumed_items_values_input2 = tf.Variable(tf.random_normal([len(self.consumed_items_indices_input)], stddev=0.01))
-        self.consumed_items_values_input2 = tf.reduce_sum(tf.math.exp(self.second_low_att_layer_for_user_item_layer1(
-            tf.reshape(tf.Variable(tf.random_normal([len(self.consumed_items_indices_input)], stddev=1.0)), [-1, 1]))),
-            1)
+        self.consumed_items_values_input2 = tf.reduce_sum(
+            tf.math.exp(
+                self.second_low_att_layer_for_user_item_layer1(
+                    tf.reshape(
+                        tf.Variable(
+                            tf.random_normal(
+                                [len(self.consumed_items_indices_input)], stddev=1.0
+                            )
+                        ), [-1, 1]
+                    )
+                )
+            ), 1
+        )
 
         self.consumed_items_values_input3 = tf.Variable(
-            tf.random_normal([len(self.consumed_items_indices_input)], stddev=0.01))
-        self.consumed_items_num_input = 1.0 / np.reshape(data_dict['CONSUMED_ITEMS_NUM_INPUT'], [-1, 1])
+            tf.random_normal([len(self.consumed_items_indices_input)], stddev=0.01)
+        )  # [(user, item)] 185869
+        self.consumed_items_num_input = 1.0 / np.reshape(data_dict['CONSUMED_ITEMS_NUM_INPUT'], [-1, 1])  # 17237个用户
 
         # ----------------------
-        # item-user graph node attention initialization
-        self.first_low_att_layer_for_item_user_layer1 = tf.layers.Dense(1, activation=tf.nn.sigmoid,
+        # 3. item-user graph node attention initialization # item-user 图节点注意力初始化
+        self.first_low_att_layer_for_item_user_layer1 = tf.layers.Dense(1,
+                                                                        activation=tf.nn.sigmoid,
                                                                         name='first_low_att_IU_layer1')
-        self.first_low_att_layer_for_item_user_layer2 = tf.layers.Dense(1, activation=tf.nn.leaky_relu,
+        self.first_low_att_layer_for_item_user_layer2 = tf.layers.Dense(1,
+                                                                        activation=tf.nn.leaky_relu,
                                                                         name='first_low_att_IU_layer2')
 
         self.item_customer_indices_input = data_dict['ITEM_CUSTOMER_INDICES_INPUT']

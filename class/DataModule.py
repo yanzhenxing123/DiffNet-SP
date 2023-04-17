@@ -23,7 +23,7 @@ class DataModule():
             data_dict['CONSUMED_ITEMS_INDICES_INPUT'] = self.consumed_items_indices_list
             data_dict['CONSUMED_ITEMS_VALUES_INPUT'] = self.consumed_items_values_list
             data_dict['CONSUMED_ITEMS_VALUES_WEIGHT_AVG_INPUT'] = self.consumed_items_values_weight_avg_list
-            data_dict['CONSUMED_ITEMS_NUM_INPUT'] = self.consumed_item_num_list
+            data_dict['CONSUMED_ITEMS_NUM_INPUT'] = self.consumed_item_num_list # [len(item_ids)]
             data_dict['CONSUMED_ITEMS_NUM_DICT_INPUT'] = self.user_item_num_dict
             data_dict['USER_ITEM_SPARSITY_DICT'] = self.user_item_sparsity_dict
         if 'SOCIAL_NEIGHBORS_SPARSE_MATRIX' in model.supply_set:
