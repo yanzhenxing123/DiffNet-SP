@@ -87,7 +87,7 @@ class diffnetplus():
 
         self.social_neighbors_values_input3 = tf.Variable(
             tf.random_normal([len(self.social_neighbors_indices_input)], stddev=0.01)
-        )
+        )  # 正态分布 259014
         self.social_neighbors_num_input = 1.0 / np.reshape(data_dict['SOCIAL_NEIGHBORS_NUM_INPUT'],
                                                            [-1, 1])  # user' friends 17237
 
@@ -143,7 +143,7 @@ class diffnetplus():
 
         self.consumed_items_values_input3 = tf.Variable(
             tf.random_normal([len(self.consumed_items_indices_input)], stddev=0.01)
-        )  # [(user, item)] 185869
+        )  # 正态分布 185869
         self.consumed_items_num_input = 1.0 / np.reshape(data_dict['CONSUMED_ITEMS_NUM_INPUT'], [-1, 1])  # 17237个用户
 
         # ----------------------
@@ -193,13 +193,14 @@ class diffnetplus():
             ), 1)
 
         self.item_customer_values_input3 = tf.Variable(
-            tf.random_normal([len(self.item_customer_indices_input)], stddev=0.01))
+            tf.random_normal([len(self.item_customer_indices_input)], stddev=0.01)
+        )  # 正态分布 185869
         self.item_customer_num_input = 1.0 / np.reshape(data_dict['ITEM_CUSTOMER_NUM_INPUT'], [-1, 1])
 
         # ----------------------
         # 4. prepare the shape of sparse matrice # 准备稀疏矩阵的形状
         self.social_neighbors_dense_shape = np.array([self.conf.num_users,
-                                                      self.conf.num_users]).astype(np.int64)  # [17237, 38342]
+                                                      self.conf.num_users]).astype(np.int64)  # [17237, 17237]
         self.consumed_items_dense_shape = np.array([self.conf.num_users,
                                                     self.conf.num_items]).astype(np.int64)  # [17237, 38342]
         self.item_customer_dense_shape = np.array([self.conf.num_items,
@@ -304,98 +305,110 @@ class diffnetplus():
         self.third_item_itself_attention_value = tf.slice(third_layer_item_attention, [0, 0], [1, 1])
         self.third_item_userneighbor_attention_value = tf.slice(third_layer_item_attention, [0, 1], [1, 1])
 
-        ######## Generate Sparse Matrices with/without attention # 不加注意地生成稀疏矩阵 #########
+        ######## 三、Generate Sparse Matrices with/without attention # with/without 生成稀疏矩阵 #########
         # ----------------------
         # Frist Layer
-
+        # (1) user-user
         self.social_neighbors_sparse_matrix_avg = tf.SparseTensor(
-            indices=self.social_neighbors_indices_input,
-            values=self.social_neighbors_values_input,
-            dense_shape=self.social_neighbors_dense_shape
+            indices=self.social_neighbors_indices_input,  # [(user_id1, user_id2)]，二者为朋友 shape=(259014, 2)
+            values=self.social_neighbors_values_input,  # [1.0 / len(friends)]
+            dense_shape=self.social_neighbors_dense_shape  # [17237, 17237]
         )
         self.first_layer_social_neighbors_sparse_matrix = tf.SparseTensor(
-            indices=self.social_neighbors_indices_input,
-            values=self.social_neighbors_values_input1,
-            dense_shape=self.social_neighbors_dense_shape
+            indices=self.social_neighbors_indices_input,  # [(user_id1, user_id2)]，二者为朋友 shape=(259014, 2)
+            values=self.social_neighbors_values_input1,  # shape=(259014,) 得到一维的向量
+            dense_shape=self.social_neighbors_dense_shape  # [17237, 17237]
         )
+        # (2) user-item
         self.consumed_items_sparse_matrix_avg = tf.SparseTensor(
-            indices=self.consumed_items_indices_input,
-            values=self.consumed_items_values_input,
-            dense_shape=self.consumed_items_dense_shape
+            indices=self.consumed_items_indices_input,  # [(user_id, item_id)] shape=(185869, 2)
+            values=self.consumed_items_values_input,  # [1.0 / len(consumed_items_dict[u]]  185869
+            dense_shape=self.consumed_items_dense_shape  # [17237, 38342]
         )
         self.first_layer_consumed_items_sparse_matrix = tf.SparseTensor(
-            indices=self.consumed_items_indices_input,
-            values=self.consumed_items_values_input1,
-            dense_shape=self.consumed_items_dense_shape
+            indices=self.consumed_items_indices_input,  # [(user_id, item_id)] shape=(185869, 2)
+            values=self.consumed_items_values_input1,  # shape=(185869,) 得到一维的向量
+            dense_shape=self.consumed_items_dense_shape  # [17237, 38342]
         )
+        # (3) item-user
         self.item_customer_sparse_matrix_avg = tf.SparseTensor(
-            indices=self.item_customer_indices_input,
-            values=self.item_customer_values_input,
-            dense_shape=self.item_customer_dense_shape
+            indices=self.item_customer_indices_input,  # [(item_id, user_id)] shape=(185869, 2)
+            values=self.item_customer_values_input,  # [1.0 / len(item_customer_dict[i]] 185869
+            dense_shape=self.item_customer_dense_shape  # [38342, 17237]
         )
         self.first_layer_item_customer_sparse_matrix = tf.SparseTensor(
-            indices=self.item_customer_indices_input,
-            values=self.item_customer_values_input1,
-            dense_shape=self.item_customer_dense_shape
+            indices=self.item_customer_indices_input,  # [(item_id, user_id)] shape=(185869, 2)
+            values=self.item_customer_values_input1,  # shape=(185869,) 得到一维的向量
+            dense_shape=self.item_customer_dense_shape  # [17237, 38342]
         )
+
+        # 对第一层稀疏矩阵进行softmax
         self.first_social_neighbors_low_level_att_matrix = tf.sparse.softmax(
-            self.first_layer_social_neighbors_sparse_matrix)
+            self.first_layer_social_neighbors_sparse_matrix
+        )
         self.first_consumed_items_low_level_att_matrix = tf.sparse.softmax(
-            self.first_layer_consumed_items_sparse_matrix)
+            self.first_layer_consumed_items_sparse_matrix
+        )
         self.first_items_users_neighborslow_level_att_matrix = tf.sparse.softmax(
-            self.first_layer_item_customer_sparse_matrix)
+            self.first_layer_item_customer_sparse_matrix
+        )
 
         # ----------------------
-        # Second layer 
-
+        # Second layer
         self.second_layer_social_neighbors_sparse_matrix = tf.SparseTensor(
-            indices=self.social_neighbors_indices_input,
-            values=self.social_neighbors_values_input2,
-            dense_shape=self.social_neighbors_dense_shape
+            indices=self.social_neighbors_indices_input,  # [(user_id1, user_id2)]，二者为朋友 shape=(259014, 2)
+            values=self.social_neighbors_values_input2,  # shape=(259014,) 得到一维的向量
+            dense_shape=self.social_neighbors_dense_shape  # [17237, 17237]
         )
         self.second_layer_consumed_items_sparse_matrix = tf.SparseTensor(
-            indices=self.consumed_items_indices_input,
-            values=self.consumed_items_values_input2,
-            dense_shape=self.consumed_items_dense_shape
+            indices=self.consumed_items_indices_input,  # [(user_id, item_id)] shape=(185869, 2)
+            values=self.consumed_items_values_input2,  # shape=(185869,) 得到一维的向量
+            dense_shape=self.consumed_items_dense_shape  # [17237, 38342]
         )
         self.second_layer_item_customer_sparse_matrix = tf.SparseTensor(
-            indices=self.item_customer_indices_input,
-            values=self.item_customer_values_input2,
-            dense_shape=self.item_customer_dense_shape
+            indices=self.item_customer_indices_input,  # [(item_id, user_id)] shape=(185869, 2)
+            values=self.item_customer_values_input2,  # shape=(185869,) 得到一维的向量
+            dense_shape=self.item_customer_dense_shape  # [38342, 17237]
         )
-
+        # 对第二层稀疏矩阵进行softmax
         self.second_social_neighbors_low_level_att_matrix = tf.sparse.softmax(
-            self.second_layer_social_neighbors_sparse_matrix)
+            self.second_layer_social_neighbors_sparse_matrix
+        )
         self.second_consumed_items_low_level_att_matrix = tf.sparse.softmax(
-            self.second_layer_consumed_items_sparse_matrix)
+            self.second_layer_consumed_items_sparse_matrix
+        )
         self.second_items_users_neighborslow_level_att_matrix = tf.sparse.softmax(
-            self.second_layer_item_customer_sparse_matrix)
+            self.second_layer_item_customer_sparse_matrix
+        )
 
         # ----------------------
         # Third layer 
-
         self.third_layer_social_neighbors_sparse_matrix = tf.SparseTensor(
-            indices=self.social_neighbors_indices_input,
-            values=self.social_neighbors_values_input3,
-            dense_shape=self.social_neighbors_dense_shape
+            indices=self.social_neighbors_indices_input,  # [(user_id1, user_id2)]，二者为朋友 shape=(259014, 2)
+            values=self.social_neighbors_values_input3,  # 正态分布 259014
+            dense_shape=self.social_neighbors_dense_shape  # [17237, 17237]
         )
         self.third_layer_consumed_items_sparse_matrix = tf.SparseTensor(
-            indices=self.consumed_items_indices_input,
-            values=self.consumed_items_values_input3,
-            dense_shape=self.consumed_items_dense_shape
+            indices=self.consumed_items_indices_input,  # [(user_id, item_id)] shape=(185869, 2)
+            values=self.consumed_items_values_input3,  # 正态分布 185869
+            dense_shape=self.consumed_items_dense_shape  # [17237, 38342]
         )
         self.third_layer_item_customer_sparse_matrix = tf.SparseTensor(
-            indices=self.item_customer_indices_input,
-            values=self.item_customer_values_input3,
-            dense_shape=self.item_customer_dense_shape
+            indices=self.item_customer_indices_input,  # [(item_id, user_id)] shape=(185869, 2)
+            values=self.item_customer_values_input3,  # 正态分布 185869
+            dense_shape=self.item_customer_dense_shape  # [38342, 17237]
         )
 
+        # 对第三层稀疏矩阵进行softmax
         self.third_social_neighbors_low_level_att_matrix = tf.sparse.softmax(
-            self.third_layer_social_neighbors_sparse_matrix)
+            self.third_layer_social_neighbors_sparse_matrix
+        )
         self.third_consumed_items_low_level_att_matrix = tf.sparse.softmax(
-            self.third_layer_consumed_items_sparse_matrix)
+            self.third_layer_consumed_items_sparse_matrix
+        )
         self.third_items_users_neighborslow_level_att_matrix = tf.sparse.softmax(
-            self.third_layer_item_customer_sparse_matrix)
+            self.third_layer_item_customer_sparse_matrix
+        )
 
     def convertDistribution(self, x):
         mean, var = tf.nn.moments(x, axes=[0, 1])
@@ -403,7 +416,7 @@ class diffnetplus():
         return y
 
     # ----------------------
-    # Operations for Diffusion
+    # Operations for Diffusion # 扩散操作
 
     def generateUserEmbeddingFromSocialNeighbors(self, current_user_embedding):
         user_embedding_from_social_neighbors = tf.sparse_tensor_dense_matmul(

@@ -23,7 +23,7 @@ class DataModule():
             data_dict['CONSUMED_ITEMS_INDICES_INPUT'] = self.consumed_items_indices_list
             data_dict['CONSUMED_ITEMS_VALUES_INPUT'] = self.consumed_items_values_list
             data_dict['CONSUMED_ITEMS_VALUES_WEIGHT_AVG_INPUT'] = self.consumed_items_values_weight_avg_list
-            data_dict['CONSUMED_ITEMS_NUM_INPUT'] = self.consumed_item_num_list # [len(item_ids)]
+            data_dict['CONSUMED_ITEMS_NUM_INPUT'] = self.consumed_item_num_list  # [len(item_ids)]
             data_dict['CONSUMED_ITEMS_NUM_DICT_INPUT'] = self.user_item_num_dict
             data_dict['USER_ITEM_SPARSITY_DICT'] = self.user_item_sparsity_dict
         if 'SOCIAL_NEIGHBORS_SPARSE_MATRIX' in model.supply_set:
@@ -31,9 +31,9 @@ class DataModule():
             self.generateSocialNeighborsSparseMatrix()
             data_dict[
                 'SOCIAL_NEIGHBORS_INDICES_INPUT'] = self.social_neighbors_indices_list  # [(user_id1, user_id2)]，二者为朋友
-            data_dict['SOCIAL_NEIGHBORS_VALUES_INPUT'] = self.social_neighbors_values_list  #
+            data_dict['SOCIAL_NEIGHBORS_VALUES_INPUT'] = self.social_neighbors_values_list  # [1.0 / len(friends)]
             data_dict['SOCIAL_NEIGHBORS_VALUES_WEIGHT_AVG_INPUT'] = self.social_neighbors_values_weight_avg_list
-            data_dict['SOCIAL_NEIGHBORS_NUM_INPUT'] = self.social_neighbor_num_list # [len(friends)]
+            data_dict['SOCIAL_NEIGHBORS_NUM_INPUT'] = self.social_neighbor_num_list  # [len(friends)]
             data_dict['SOCIAL_NEIGHBORS_NUM_DICT_INPUT'] = self.social_neighbors_num_dict
             data_dict['USER_USER_SPARSITY_DICT'] = self.user_user_sparsity_dict
         if 'ITEM_CUSTOMER_SPARSE_MATRIX' in model.supply_set:
@@ -301,8 +301,8 @@ class DataModule():
         social_neighbors_indices_list = []
         social_neighbors_values_list = []
         social_neighbors_values_weight_avg_list = []
-        social_neighbor_num_list = [] # [len(friends)]
-        social_neighbors_dict = defaultdict(list) # {user_id:[friend_id1, friend_id2]} value进行了排序，本质还是 social_neighbors
+        social_neighbor_num_list = []  # [len(friends)]
+        social_neighbors_dict = defaultdict(list)  # {user_id:[friend_id1, friend_id2]} value进行了排序，本质还是 social_neighbors
 
         user_user_num_for_sparsity_dict = defaultdict(set)
         user_user_sparsity_dict = {}
