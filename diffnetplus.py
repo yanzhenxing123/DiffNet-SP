@@ -608,6 +608,10 @@ class diffnetplus():
         return item_embedding_from_customer
 
     def initializeNodes(self):
+        """
+        初始化图节点，定义好每个层
+        :return:
+        """
         self.item_input = tf.placeholder("int32", [None, 1])  # Get item embedding from the core_item_input
         self.user_input = tf.placeholder("int32", [None, 1])  # Get user embedding from the core_user_input
         self.labels_input = tf.placeholder("float32", [None, 1])
@@ -616,14 +620,17 @@ class diffnetplus():
             tf.random_normal([self.conf.num_users, self.conf.dimension], stddev=0.01),
             name='user_embedding'
         )  # shape = [17237, 64]
+
         self.item_embedding = tf.Variable(
             tf.random_normal([self.conf.num_items, self.conf.dimension], stddev=0.01),
             name='item_embedding'
         )  # [38342, 64]
 
-        self.user_review_vector_matrix = tf.constant(np.load(self.conf.user_review_vector_matrix), dtype=tf.float32)
-        self.item_review_vector_matrix = tf.constant(np.load(self.conf.item_review_vector_matrix), dtype=tf.float32)
-        self.reduce_dimension_layer = tf.layers.Dense(
+        self.user_review_vector_matrix = tf.constant(np.load(self.conf.user_review_vector_matrix),
+                                                     dtype=tf.float32)  # shape=(17237, 150)
+        self.item_review_vector_matrix = tf.constant(np.load(self.conf.item_review_vector_matrix),
+                                                     dtype=tf.float32)  # shape=(38342, 150)
+        self.reduce_dimension_layer = tf.layers.Dense(  # 降维层
             self.conf.dimension,
             activation=tf.nn.sigmoid,
             name='reduce_dimension_layer'
@@ -632,175 +639,265 @@ class diffnetplus():
         ########  Fine-grained Graph Attention initialization  # 细粒度Graph Attention初始化 ########
         # ----------------------
         # User part
-
         # ----------------------
         # First diffusion layer
-        self.first_user_part_social_graph_att_layer1 = tf.layers.Dense( \
-            1, activation=tf.nn.tanh, name='firstGCN_UU_user_MLP_first_layer')
-
-        self.first_user_part_social_graph_att_layer2 = tf.layers.Dense( \
-            1, activation=tf.nn.leaky_relu, name='firstGCN_UU_user_MLP_sencond_layer')
-
-        self.first_user_part_interest_graph_att_layer1 = tf.layers.Dense( \
-            1, activation=tf.nn.tanh, name='firstGCN_UI_user_MLP_first_layer')
-
-        self.first_user_part_interest_graph_att_layer2 = tf.layers.Dense( \
-            1, activation=tf.nn.leaky_relu, name='firstGCN_UI_user_MLP_second_layer')
+        self.first_user_part_social_graph_att_layer1 = tf.layers.Dense(1,
+                                                                       activation=tf.nn.tanh,
+                                                                       name='firstGCN_UU_user_MLP_first_layer')
+        self.first_user_part_social_graph_att_layer2 = tf.layers.Dense(1,
+                                                                       activation=tf.nn.leaky_relu,
+                                                                       name='firstGCN_UU_user_MLP_sencond_layer')
+        self.first_user_part_interest_graph_att_layer1 = tf.layers.Dense(1,
+                                                                         activation=tf.nn.tanh,
+                                                                         name='firstGCN_UI_user_MLP_first_layer')
+        self.first_user_part_interest_graph_att_layer2 = tf.layers.Dense(1,
+                                                                         activation=tf.nn.leaky_relu,
+                                                                         name='firstGCN_UI_user_MLP_second_layer')
 
         # ----------------------
         # Second diffusion layer
-        self.second_user_part_social_graph_att_layer1 = tf.layers.Dense( \
-            1, activation=tf.nn.tanh, name='secondGCN_UU_user_MLP_first_layer')
+        self.second_user_part_social_graph_att_layer1 = tf.layers.Dense(1,
+                                                                        activation=tf.nn.tanh,
+                                                                        name='secondGCN_UU_user_MLP_first_layer')
 
-        self.second_user_part_social_graph_att_layer2 = tf.layers.Dense( \
-            1, activation=tf.nn.leaky_relu, name='secondGCN_UU_user_MLP_second_layer')
+        self.second_user_part_social_graph_att_layer2 = tf.layers.Dense(1,
+                                                                        activation=tf.nn.leaky_relu,
+                                                                        name='secondGCN_UU_user_MLP_second_layer')
 
-        self.second_user_part_interest_graph_att_layer1 = tf.layers.Dense( \
-            1, activation=tf.nn.tanh, name='secondGCN_UI_user_MLP_first_layer')
+        self.second_user_part_interest_graph_att_layer1 = tf.layers.Dense(1,
+                                                                          activation=tf.nn.tanh,
+                                                                          name='secondGCN_UI_user_MLP_first_layer')
 
-        self.second_user_part_interest_graph_att_layer2 = tf.layers.Dense( \
-            1, activation=tf.nn.leaky_relu, name='secondGCN_UI_user_MLP_second_layer')
+        self.second_user_part_interest_graph_att_layer2 = tf.layers.Dense(1,
+                                                                          activation=tf.nn.leaky_relu,
+                                                                          name='secondGCN_UI_user_MLP_second_layer')
 
         # ----------------------
         # Item part
-        self.first_item_part_itself_graph_att_layer1 = tf.layers.Dense( \
-            1, activation=tf.nn.tanh, name='firstGCN_IU_itemself_MLP_first_layer')
-
-        self.first_item_part_itself_graph_att_layer2 = tf.layers.Dense( \
-            1, activation=tf.nn.leaky_relu, name='firstGCN_IU_itemself_MLP_second_layer')
-
-        self.first_item_part_user_graph_att_layer1 = tf.layers.Dense( \
-            1, activation=tf.nn.tanh, name='firstGCN_IU_customer_MLP_first_layer')
-
-        self.first_item_part_user_graph_att_layer2 = tf.layers.Dense( \
-            1, activation=tf.nn.leaky_relu, name='firstGCN_IU_customer_MLP_second_layer')
-
-        self.second_item_part_itself_graph_att_layer1 = tf.layers.Dense( \
-            1, activation=tf.nn.tanh, name='secondGCN_IU_itemself_MLP_first_layer')
-
-        self.second_item_part_itself_graph_att_layer2 = tf.layers.Dense( \
-            1, activation=tf.nn.leaky_relu, name='secondGCN_IU_itemself_MLP_second_layer')
-
-        self.second_item_part_user_graph_att_layer1 = tf.layers.Dense( \
-            1, activation=tf.nn.tanh, name='secondGCN_IU_customer_MLP_first_layer')
-
-        self.second_item_part_user_graph_att_layer2 = tf.layers.Dense( \
-            1, activation=tf.nn.leaky_relu, name='secondGCN_IU_customer_MLP_second_layer')
+        self.first_item_part_itself_graph_att_layer1 = tf.layers.Dense(1,
+                                                                       activation=tf.nn.tanh,
+                                                                       name='firstGCN_IU_itemself_MLP_first_layer')
+        self.first_item_part_itself_graph_att_layer2 = tf.layers.Dense(1,
+                                                                       activation=tf.nn.leaky_relu,
+                                                                       name='firstGCN_IU_itemself_MLP_second_layer')
+        self.first_item_part_user_graph_att_layer1 = tf.layers.Dense(1,
+                                                                     activation=tf.nn.tanh,
+                                                                     name='firstGCN_IU_customer_MLP_first_layer')
+        self.first_item_part_user_graph_att_layer2 = tf.layers.Dense(1,
+                                                                     activation=tf.nn.leaky_relu,
+                                                                     name='firstGCN_IU_customer_MLP_second_layer')
+        self.second_item_part_itself_graph_att_layer1 = tf.layers.Dense(1,
+                                                                        activation=tf.nn.tanh,
+                                                                        name='secondGCN_IU_itemself_MLP_first_layer')
+        self.second_item_part_itself_graph_att_layer2 = tf.layers.Dense(1,
+                                                                        activation=tf.nn.leaky_relu,
+                                                                        name='secondGCN_IU_itemself_MLP_second_layer')
+        self.second_item_part_user_graph_att_layer1 = tf.layers.Dense(1,
+                                                                      activation=tf.nn.tanh,
+                                                                      name='secondGCN_IU_customer_MLP_first_layer')
+        self.second_item_part_user_graph_att_layer2 = tf.layers.Dense(1,
+                                                                      activation=tf.nn.leaky_relu,
+                                                                      name='secondGCN_IU_customer_MLP_second_layer')
 
     def constructTrainGraph(self):
-        ########  Fusion Layer ########
+        """
+        创建训练图 ★
+        :return:
+        """
+        ########  Fusion Layer # 融合层 ########
 
-        first_user_review_vector_matrix = self.convertDistribution(self.user_review_vector_matrix)
-        first_item_review_vector_matrix = self.convertDistribution(self.item_review_vector_matrix)
+        first_user_review_vector_matrix = self.convertDistribution(self.user_review_vector_matrix)  # 转换分布
+        first_item_review_vector_matrix = self.convertDistribution(self.item_review_vector_matrix)  # 转换分布
 
-        self.user_reduce_dim_vector_matrix = self.reduce_dimension_layer(first_user_review_vector_matrix)
-        self.item_reduce_dim_vector_matrix = self.reduce_dimension_layer(first_item_review_vector_matrix)
+        self.user_reduce_dim_vector_matrix = self.reduce_dimension_layer(
+            first_user_review_vector_matrix
+        )  # 降维 shape=(17237, 64) 激活函数：sigmoid
+        self.item_reduce_dim_vector_matrix = self.reduce_dimension_layer(
+            first_item_review_vector_matrix
+        )  # 降维 shape=(38342, 64) 激活函数：sigmoid
 
-        second_user_review_vector_matrix = self.convertDistribution(self.user_reduce_dim_vector_matrix)
-        second_item_review_vector_matrix = self.convertDistribution(self.item_reduce_dim_vector_matrix)
+        second_user_review_vector_matrix = self.convertDistribution(
+            self.user_reduce_dim_vector_matrix
+        )  # 转换分布 shape=(17237, 64)
+        second_item_review_vector_matrix = self.convertDistribution(
+            self.item_reduce_dim_vector_matrix
+        )  # 转换分布 shape=(38342, 64)
 
         self.fusion_item_embedding = self.item_embedding + second_item_review_vector_matrix
         self.fusion_user_embedding = self.user_embedding + second_user_review_vector_matrix
 
-        ######## Influence and Interest Diffusion Layer ########
+        ######## Influence and Interest Diffusion Layer 影响力和兴趣扩散层 ########
 
         # ----------------------
         # First Layer
 
-        user_embedding_from_consumed_items = self.generateUserEmebddingFromConsumedItems1(self.fusion_item_embedding)
+        user_embedding_from_consumed_items = self.generateUserEmebddingFromConsumedItems1(
+            self.fusion_item_embedding
+        )  # shape=(17237, 64)
         user_embedding_from_social_neighbors = self.generateUserEmbeddingFromSocialNeighbors1(
-            self.fusion_user_embedding)
+            self.fusion_user_embedding
+        )  # shape=(17237, 64)
 
+        # 降维
         consumed_items_attention = tf.math.exp(
-            self.first_user_part_interest_graph_att_layer2(self.first_user_part_interest_graph_att_layer1( \
-                tf.concat([self.fusion_user_embedding, user_embedding_from_consumed_items], 1)))) + 0.7
+            self.first_user_part_interest_graph_att_layer2(  # leaky_relu
+                self.first_user_part_interest_graph_att_layer1(  # tanh 128 -> 1
+                    tf.concat(
+                        [self.fusion_user_embedding, user_embedding_from_consumed_items], 1
+                    )  # shape=(17237, 128)
+                )
+            )
+        ) + 0.7  # shape=(17237, 1)
+
+        # 降维
         social_neighbors_attention = tf.math.exp(
-            self.first_user_part_social_graph_att_layer2(self.first_user_part_social_graph_att_layer1( \
-                tf.concat([self.fusion_user_embedding, user_embedding_from_social_neighbors], 1)))) + 0.3
+            self.first_user_part_social_graph_att_layer2(  # leaky_relu
+                self.first_user_part_social_graph_att_layer1(  # tanh 128 -> 1
+                    tf.concat(
+                        [self.fusion_user_embedding, user_embedding_from_social_neighbors], 1
+                    )  # shape=(17237, 128)
+                )
+            )
+        ) + 0.3  # shape=(17237, 1)
 
-        sum_attention = consumed_items_attention + social_neighbors_attention
-        self.consumed_items_attention_1 = consumed_items_attention / sum_attention
-        self.social_neighbors_attention_1 = social_neighbors_attention / sum_attention
+        sum_attention = consumed_items_attention + social_neighbors_attention  # shape=(17237, 1)
+        self.consumed_items_attention_1 = consumed_items_attention / sum_attention  # shape=(17237, 1)
+        self.social_neighbors_attention_1 = social_neighbors_attention / sum_attention  # shape=(17237, 1)
 
-        first_gcn_user_embedding = 1 / 2 * self.fusion_user_embedding \
-                                   + 1 / 2 * (self.consumed_items_attention_1 * user_embedding_from_consumed_items \
-                                              + self.social_neighbors_attention_1 * user_embedding_from_social_neighbors)
+        first_gcn_user_embedding = 1 / 2 * self.fusion_user_embedding + 1 / 2 * (
+                self.consumed_items_attention_1 * user_embedding_from_consumed_items +
+                self.social_neighbors_attention_1 * user_embedding_from_social_neighbors
+        )  # shape=(17237, 64)
 
         first_mean_social_influ, first_var_social_influ = tf.nn.moments(self.social_neighbors_attention_1, axes=0)
         first_mean_interest_influ, first_var_interest_influ = tf.nn.moments(self.consumed_items_attention_1, axes=0)
-        self.first_layer_analy = [first_mean_social_influ, first_var_social_influ, \
-                                  first_mean_interest_influ, first_var_interest_influ]
+        self.first_layer_analy = [
+            first_mean_social_influ,
+            first_var_social_influ,
+            first_mean_interest_influ,
+            first_var_interest_influ
+        ]
 
-        item_itself_att = tf.math.exp(self.first_item_part_itself_graph_att_layer2( \
-            self.first_item_part_itself_graph_att_layer1(self.fusion_item_embedding))) + 1.0
+        item_itself_att = tf.math.exp(
+            self.first_item_part_itself_graph_att_layer2(  # leaky_relu
+                self.first_item_part_itself_graph_att_layer1(  # tanh 64 -> 1
+                    self.fusion_item_embedding  # shape=(38342, 64)
+                )
+            )
+        ) + 1.0  # shape=(38342, 1)
 
-        item_customer_attenton = tf.math.exp(self.first_item_part_user_graph_att_layer2( \
-            self.first_item_part_user_graph_att_layer1(
-                self.generateItemEmebddingFromCustomer1(self.fusion_user_embedding)))) + 1.0
+        item_customer_attenton = tf.math.exp(
+            self.first_item_part_user_graph_att_layer2(  # leaky_relu
+                self.first_item_part_user_graph_att_layer1(  # tanh
+                    self.generateItemEmebddingFromCustomer1(  # shape=(38342, 64)
+                        self.fusion_user_embedding  # shape=(17237, 64)
+                    )
+                )
+            )
+        ) + 1.0  # shape=(38342, 1)
 
-        item_sum_attention = item_itself_att + item_customer_attenton
+        item_sum_attention = item_itself_att + item_customer_attenton  # shape=(38342, 1)
 
-        self.item_itself_att1 = item_itself_att / item_sum_attention
-        self.item_customer_attenton1 = item_customer_attenton / item_sum_attention
+        self.item_itself_att1 = item_itself_att / item_sum_attention  # shape=(38342, 1)
+        self.item_customer_attenton1 = item_customer_attenton / item_sum_attention  # shape=(38342, 1)
 
-        first_gcn_item_embedding = self.item_itself_att1 * self.fusion_item_embedding + \
-                                   self.item_customer_attenton1 * self.generateItemEmebddingFromCustomer1(
-            self.fusion_user_embedding)
+        first_gcn_item_embedding = self.item_itself_att1 * self.fusion_item_embedding
+        + self.item_customer_attenton1 * self.generateItemEmebddingFromCustomer1(
+            self.fusion_user_embedding
+        )  # shape=(38342, 64)
 
         first_mean_social_influ1, first_var_social_influ1 = tf.nn.moments(self.item_itself_att1, axes=0)
         first_mean_interest_influ1, first_var_interest_influ1 = tf.nn.moments(self.item_customer_attenton1, axes=0)
-        self.first_layer_item_analy = [first_mean_social_influ1, first_var_social_influ1, \
-                                       first_mean_interest_influ1, first_var_interest_influ1]
+        self.first_layer_item_analy = [
+            first_mean_social_influ1,
+            first_var_social_influ1,
+            first_mean_interest_influ1,
+            first_var_interest_influ1
+        ]
 
         # ----------------------
         # Second Layer
 
-        user_embedding_from_consumed_items = self.generateUserEmebddingFromConsumedItems2(first_gcn_item_embedding)
-        user_embedding_from_social_neighbors = self.generateUserEmbeddingFromSocialNeighbors2(first_gcn_user_embedding)
+        user_embedding_from_consumed_items = self.generateUserEmebddingFromConsumedItems2(
+            first_gcn_item_embedding
+        )  # shape=(17237, 64)
+        user_embedding_from_social_neighbors = self.generateUserEmbeddingFromSocialNeighbors2(
+            first_gcn_user_embedding
+        )  # shape=(17237, 64)
 
         consumed_items_attention = tf.math.exp(
-            self.second_user_part_interest_graph_att_layer2(self.second_user_part_interest_graph_att_layer1( \
-                tf.concat([first_gcn_user_embedding, user_embedding_from_consumed_items], 1)))) + 0.7
+            self.second_user_part_interest_graph_att_layer2(  # leaky_relu
+                self.second_user_part_interest_graph_att_layer1(  # tanh 128 -> 1
+                    tf.concat([first_gcn_user_embedding, user_embedding_from_consumed_items], 1)
+                )
+            )
+        ) + 0.7  # shape=(17237, 1)
 
         social_neighbors_attention = tf.math.exp(
-            self.second_user_part_social_graph_att_layer2(self.second_user_part_social_graph_att_layer1( \
-                tf.concat([first_gcn_user_embedding, user_embedding_from_social_neighbors], 1)))) + 0.3
+            self.second_user_part_social_graph_att_layer2(  # leaky_relu
+                self.second_user_part_social_graph_att_layer1(  # tanh 128 -> 1
+                    tf.concat([first_gcn_user_embedding, user_embedding_from_social_neighbors], 1)
+                )
+            )
+        ) + 0.3  # shape=(17237, 1)
 
-        sum_attention = consumed_items_attention + social_neighbors_attention
-        self.consumed_items_attention_2 = consumed_items_attention / sum_attention
-        self.social_neighbors_attention_2 = social_neighbors_attention / sum_attention
+        sum_attention = consumed_items_attention + social_neighbors_attention  # shape=(17237, 1)
+        self.consumed_items_attention_2 = consumed_items_attention / sum_attention  # shape=(17237, 1)
+        self.social_neighbors_attention_2 = social_neighbors_attention / sum_attention  # shape=(17237, 1)
 
-        second_gcn_user_embedding = 1 / 2 * first_gcn_user_embedding \
-                                    + 1 / 2 * (self.consumed_items_attention_2 * user_embedding_from_consumed_items \
-                                               + self.social_neighbors_attention_2 * user_embedding_from_social_neighbors)
+        second_gcn_user_embedding = 1 / 2 * first_gcn_user_embedding + 1 / 2 * (
+                self.consumed_items_attention_2 * user_embedding_from_consumed_items
+                + self.social_neighbors_attention_2 * user_embedding_from_social_neighbors
+        )  # shape=(17237, 64)
 
         second_mean_social_influ, second_var_social_influ = tf.nn.moments(self.social_neighbors_attention_2, axes=0)
         second_mean_interest_influ, second_var_interest_influ = tf.nn.moments(self.consumed_items_attention_2, axes=0)
-        self.second_layer_analy = [second_mean_social_influ, second_var_social_influ, \
-                                   second_mean_interest_influ, second_var_interest_influ]
+        self.second_layer_analy = [
+            second_mean_social_influ,
+            second_var_social_influ,
+            second_mean_interest_influ,
+            second_var_interest_influ
+        ]
 
-        item_itself_att = tf.math.exp(self.second_item_part_itself_graph_att_layer2( \
-            self.second_item_part_itself_graph_att_layer1(first_gcn_item_embedding))) + 1.0
+        item_itself_att = tf.math.exp(
+            self.second_item_part_itself_graph_att_layer2(  # leaky_relu
+                self.second_item_part_itself_graph_att_layer1(  # tanh 64 -> 1
+                    first_gcn_item_embedding  # shape=(38342, 64)
+                )
+            )
+        ) + 1.0  # shape=(38342, 1)
 
-        item_customer_attenton = tf.math.exp(self.second_item_part_user_graph_att_layer2( \
-            self.second_item_part_user_graph_att_layer1(
-                self.generateItemEmebddingFromCustomer2(first_gcn_user_embedding)))) + 1.0
+        item_customer_attenton = tf.math.exp(
+            self.second_item_part_user_graph_att_layer2(  # leaky_relu
+                self.second_item_part_user_graph_att_layer1(  # tanh 64 -> 1
+                    self.generateItemEmebddingFromCustomer2(
+                        first_gcn_user_embedding  # shape=(17237, 64)
+                    )
+                )
+            )
+        ) + 1.0  # shape=(38342, 1)
 
-        item_sum_attention = item_itself_att + item_customer_attenton
+        item_sum_attention = item_itself_att + item_customer_attenton  # shape=(38342, 1)
 
-        self.item_itself_att2 = item_itself_att / item_sum_attention
-        self.item_customer_attenton2 = item_customer_attenton / item_sum_attention
+        self.item_itself_att2 = item_itself_att / item_sum_attention  # shape=(38342, 1)
+        self.item_customer_attenton2 = item_customer_attenton / item_sum_attention  # shape=(38342, 1)
 
         second_gcn_item_embedding = self.item_itself_att2 * first_gcn_item_embedding + \
-                                    self.item_customer_attenton2 * self.generateItemEmebddingFromCustomer2(
-            first_gcn_user_embedding)
+                                    self.item_customer_attenton2 * \
+                                    self.generateItemEmebddingFromCustomer2(
+                                        first_gcn_user_embedding  # (17237, 64)
+                                    )  # shape=(38342, 64)
 
         first_mean_social_influ2, first_var_social_influ2 = tf.nn.moments(self.item_itself_att2, axes=0)
         first_mean_interest_influ2, first_var_interest_influ2 = tf.nn.moments(self.item_customer_attenton2, axes=0)
-        self.second_layer_item_analy = [first_mean_social_influ2, first_var_social_influ2, \
-                                        first_mean_interest_influ2, first_var_interest_influ2]
+        self.second_layer_item_analy = [
+            first_mean_social_influ2,
+            first_var_social_influ2,
+            first_mean_interest_influ2,
+            first_var_interest_influ2
+        ]
 
-        ######## Prediction Layer ########
+        ######## Prediction Layer # 预测层 ########
 
         self.final_user_embedding = \
             tf.concat([first_gcn_user_embedding, second_gcn_user_embedding, self.user_embedding,
@@ -814,14 +911,14 @@ class diffnetplus():
         self.final_item_embedding = second_gcn_item_embedding
         '''
 
-        latest_user_latent = tf.gather_nd(self.final_user_embedding, self.user_input)
-        latest_item_latent = tf.gather_nd(self.final_item_embedding, self.item_input)
+        latest_user_latent = tf.gather_nd(self.final_user_embedding, self.user_input)  # shape=(?, 256)
+        latest_item_latent = tf.gather_nd(self.final_item_embedding, self.item_input)  # shape=(?, 256)
 
-        self.predict_vector = tf.multiply(latest_user_latent, latest_item_latent)
-        self.prediction = tf.sigmoid(tf.reduce_sum(self.predict_vector, 1, keepdims=True))
+        self.predict_vector = tf.multiply(latest_user_latent, latest_item_latent)  # shape=(?, 256)
+        self.prediction = tf.sigmoid(tf.reduce_sum(self.predict_vector, 1, keepdims=True))  # shape=(?, 1)
 
         # ----------------------
-        # Optimazation
+        # Optimazation 训练优化器
 
         self.loss = tf.nn.l2_loss(self.labels_input - self.prediction)
         self.opt_loss = tf.nn.l2_loss(self.labels_input - self.prediction)
@@ -829,6 +926,10 @@ class diffnetplus():
         self.init = tf.global_variables_initializer()
 
     def saveVariables(self):
+        """
+        保存变量
+        :return:
+        """
         ############################# Save Variables #################################
         variables_dict = {}
         variables_dict[self.user_embedding.op.name] = self.user_embedding
