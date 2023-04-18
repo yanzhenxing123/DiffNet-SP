@@ -339,7 +339,7 @@ class diffnetplus():
         self.first_layer_item_customer_sparse_matrix = tf.SparseTensor(
             indices=self.item_customer_indices_input,  # [(item_id, user_id)] shape=(185869, 2)
             values=self.item_customer_values_input1,  # shape=(185869,) 得到一维的向量
-            dense_shape=self.item_customer_dense_shape  # [17237, 38342]
+            dense_shape=self.item_customer_dense_shape  # [38342, 17237]
         )
 
         # 对第一层稀疏矩阵进行softmax
@@ -411,80 +411,197 @@ class diffnetplus():
         )
 
     def convertDistribution(self, x):
+        """
+        转换分布, 将数据标准化到一个较小的范围内, 所以乘以 0.1
+        :param x:
+        :return:
+        """
         mean, var = tf.nn.moments(x, axes=[0, 1])
         y = (x - mean) * 0.1 / tf.sqrt(var)
         return y
 
     # ----------------------
     # Operations for Diffusion # 扩散操作
+    """
+    Note:
+    - SocialNeighbors: user-user
+    - ConsumedItems: user-item
+    - Customer: item-user
+    """
 
     def generateUserEmbeddingFromSocialNeighbors(self, current_user_embedding):
+        """
+        从 user-user 生成 user_embedding
+
+        self.social_neighbors_sparse_matrix_avg：社交关系稀疏矩阵 {
+            index=[(user_id1, user_id2)]
+            value=[1.0 / len(friends)] # shape=(259014,)
+            shape=(17237, 17237)
+        }
+        :param current_user_embedding: 用户原始 embedding # shape = [17237, 64]
+        :return:
+        """
         user_embedding_from_social_neighbors = tf.sparse_tensor_dense_matmul(
             self.social_neighbors_sparse_matrix_avg, current_user_embedding
         )
         return user_embedding_from_social_neighbors
 
     def generateUserEmbeddingFromSocialNeighbors1(self, current_user_embedding):
+        """
+        从 user-user 生成 user_embedding
+
+        self.first_social_neighbors_low_level_att_matrix：softmax过后的社交关系稀疏矩阵 {
+            index=[(user_id1, user_id2)]
+            value=reduce_sum() # shape=(259014,) 得到一维的向量
+            shape=(17237, 17237)
+        }
+
+
+        :param current_user_embedding: 用户原始 embedding # shape = (17237, 64)
+        :return:
+        """
         user_embedding_from_social_neighbors = tf.sparse_tensor_dense_matmul(
             self.first_social_neighbors_low_level_att_matrix, current_user_embedding
         )
         return user_embedding_from_social_neighbors
 
     def generateUserEmebddingFromConsumedItems(self, current_item_embedding):
+        """
+        从 user-item 生成 user_embedding
+
+        self.consumed_items_sparse_matrix_avg：user-item稀疏矩阵 {
+            index=[(user_id, item_id)]
+            value=[1.0 / len(consumed_items_dict[u]]  185869
+            shape=(17237, 38342)
+        }
+
+        :param current_item_embedding: 物品原始embedding shape=(38342, 64)
+        :return:
+        """
         user_embedding_from_consumed_items = tf.sparse_tensor_dense_matmul(
             self.consumed_items_sparse_matrix_avg, current_item_embedding
         )
         return user_embedding_from_consumed_items
 
     def generateUserEmebddingFromConsumedItems1(self, current_item_embedding):
+        """
+        从 user-item 生成 user_embedding
+
+        self.first_consumed_items_low_level_att_matrix：softmax 过后的user-item稀疏矩阵 {
+            index=[(user_id, item_id)]
+            value=reduce_sum() # shape=(185869,) 得到一维的向量
+            shape=(17237, 38342)
+        }
+
+        :param current_item_embedding: 物品原始 embedding shape=(38342, 64)
+        :return:
+        """
         user_embedding_from_consumed_items = tf.sparse_tensor_dense_matmul(
             self.first_consumed_items_low_level_att_matrix, current_item_embedding
         )
         return user_embedding_from_consumed_items
 
     def generateItemEmebddingFromCustomer(self, current_user_embedding):
+        """
+        从 item-user 生成 item_embedding
+
+        self.item_customer_sparse_matrix_avg：过后的item-user稀疏矩阵 {
+            index=[(item_id, user_id)]
+            value=[1.0 / len(item_customer_dict[i]] 185869
+            shape=(38342, 17237)
+        }
+        :param current_user_embedding:
+        :return:
+        """
         item_embedding_from_customer = tf.sparse_tensor_dense_matmul(
             self.item_customer_sparse_matrix_avg, current_user_embedding
         )
         return item_embedding_from_customer
 
     def generateItemEmebddingFromCustomer1(self, current_user_embedding):
+        """
+        从 item-user 生成 item_embedding
+
+        self.first_items_users_neighborslow_level_att_matrix：过后的item-user稀疏矩阵 {
+            index=[(item_id, user_id)]
+            value=reduce_sum() 185869
+            shape=(38342, 17237)
+        }
+        :param current_user_embedding:
+        :return:
+        """
         item_embedding_from_customer = tf.sparse_tensor_dense_matmul(
             self.first_items_users_neighborslow_level_att_matrix, current_user_embedding
         )
         return item_embedding_from_customer
 
     def generateUserEmbeddingFromSocialNeighbors2(self, current_user_embedding):
+        """
+        从 user-user 生成 user_embedding
+
+        :param current_user_embedding:
+        :return:
+        """
         user_embedding_from_social_neighbors = tf.sparse_tensor_dense_matmul(
             self.second_social_neighbors_low_level_att_matrix, current_user_embedding
         )
         return user_embedding_from_social_neighbors
 
     def generateUserEmebddingFromConsumedItems2(self, current_item_embedding):
+        """
+        从 user-items 生成 user_embedding
+
+        :param current_item_embedding:
+        :return:
+        """
         user_embedding_from_consumed_items = tf.sparse_tensor_dense_matmul(
             self.second_consumed_items_low_level_att_matrix, current_item_embedding
         )
         return user_embedding_from_consumed_items
 
     def generateItemEmebddingFromCustomer2(self, current_user_embedding):
+        """
+        从 item-user 生成 item_embedding
+
+        :param current_item_embedding:
+        :return:
+        """
         item_embedding_from_customer = tf.sparse_tensor_dense_matmul(
             self.second_items_users_neighborslow_level_att_matrix, current_user_embedding
         )
         return item_embedding_from_customer
 
     def generateUserEmbeddingFromSocialNeighbors3(self, current_user_embedding):
+        """
+        从 user-user 生成 user_embedding
+
+        :param current_user_embedding:
+        :return:
+        """
         user_embedding_from_social_neighbors = tf.sparse_tensor_dense_matmul(
             self.third_social_neighbors_low_level_att_matrix, current_user_embedding
         )
         return user_embedding_from_social_neighbors
 
     def generateUserEmebddingFromConsumedItems3(self, current_item_embedding):
+        """
+        从 user-item 生成 user_embedding
+
+        :param current_item_embedding:
+        :return:
+        """
         user_embedding_from_consumed_items = tf.sparse_tensor_dense_matmul(
             self.third_consumed_items_low_level_att_matrix, current_item_embedding
         )
         return user_embedding_from_consumed_items
 
     def generateItemEmebddingFromCustomer3(self, current_user_embedding):
+        """
+        从 item-user 生成 item_embedding
+
+        :param current_user_embedding:
+        :return:
+        """
         item_embedding_from_customer = tf.sparse_tensor_dense_matmul(
             self.third_items_users_neighborslow_level_att_matrix, current_user_embedding
         )
@@ -496,9 +613,13 @@ class diffnetplus():
         self.labels_input = tf.placeholder("float32", [None, 1])
 
         self.user_embedding = tf.Variable(
-            tf.random_normal([self.conf.num_users, self.conf.dimension], stddev=0.01), name='user_embedding')
+            tf.random_normal([self.conf.num_users, self.conf.dimension], stddev=0.01),
+            name='user_embedding'
+        )  # shape = [17237, 64]
         self.item_embedding = tf.Variable(
-            tf.random_normal([self.conf.num_items, self.conf.dimension], stddev=0.01), name='item_embedding')
+            tf.random_normal([self.conf.num_items, self.conf.dimension], stddev=0.01),
+            name='item_embedding'
+        )  # [38342, 64]
 
         self.user_review_vector_matrix = tf.constant(np.load(self.conf.user_review_vector_matrix), dtype=tf.float32)
         self.item_review_vector_matrix = tf.constant(np.load(self.conf.item_review_vector_matrix), dtype=tf.float32)
@@ -508,7 +629,7 @@ class diffnetplus():
             name='reduce_dimension_layer'
         )
 
-        ########  Fine-grained Graph Attention initialization ########
+        ########  Fine-grained Graph Attention initialization  # 细粒度Graph Attention初始化 ########
         # ----------------------
         # User part
 
