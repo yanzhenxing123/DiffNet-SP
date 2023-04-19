@@ -640,7 +640,7 @@ class diffnetplus():
         # ----------------------
         # User part
         # ----------------------
-        # First diffusion layer
+        # First diffusion layer 扩散层
         self.first_user_part_social_graph_att_layer1 = tf.layers.Dense(1,
                                                                        activation=tf.nn.tanh,
                                                                        name='firstGCN_UU_user_MLP_first_layer')
@@ -655,7 +655,7 @@ class diffnetplus():
                                                                          name='firstGCN_UI_user_MLP_second_layer')
 
         # ----------------------
-        # Second diffusion layer
+        # Second diffusion layer 扩散
         self.second_user_part_social_graph_att_layer1 = tf.layers.Dense(1,
                                                                         activation=tf.nn.tanh,
                                                                         name='secondGCN_UU_user_MLP_first_layer')
@@ -704,7 +704,7 @@ class diffnetplus():
         创建训练图 ★
         :return:
         """
-        ########  Fusion Layer # 融合层 ########
+        ########  Fusion Layer # 融合层 相加操作 ########
 
         first_user_review_vector_matrix = self.convertDistribution(self.user_review_vector_matrix)  # 转换分布
         first_item_review_vector_matrix = self.convertDistribution(self.item_review_vector_matrix)  # 转换分布
@@ -726,7 +726,7 @@ class diffnetplus():
         self.fusion_item_embedding = self.item_embedding + second_item_review_vector_matrix
         self.fusion_user_embedding = self.user_embedding + second_user_review_vector_matrix
 
-        ######## Influence and Interest Diffusion Layer 影响力和兴趣扩散层 ########
+        ######## Influence and Interest Diffusion Layer 影响力和兴趣扩散层 相乘操作 ########
 
         # ----------------------
         # First Layer
@@ -887,15 +887,6 @@ class diffnetplus():
                                         first_gcn_user_embedding  # (17237, 64)
                                     )  # shape=(38342, 64)
 
-        first_mean_social_influ2, first_var_social_influ2 = tf.nn.moments(self.item_itself_att2, axes=0)
-        first_mean_interest_influ2, first_var_interest_influ2 = tf.nn.moments(self.item_customer_attenton2, axes=0)
-        self.second_layer_item_analy = [
-            first_mean_social_influ2,
-            first_var_social_influ2,
-            first_mean_interest_influ2,
-            first_var_interest_influ2
-        ]
-
         ######## Prediction Layer # 预测层 ########
 
         self.final_user_embedding = tf.concat([first_gcn_user_embedding,
@@ -906,11 +897,6 @@ class diffnetplus():
                                                second_gcn_item_embedding,
                                                self.item_embedding,
                                                second_item_review_vector_matrix], 1)
-
-        '''
-        self.final_user_embedding = second_gcn_user_embedding
-        self.final_item_embedding = second_gcn_item_embedding
-        '''
 
         latest_user_latent = tf.gather_nd(self.final_user_embedding, self.user_input)  # shape=(?, 256)
         latest_item_latent = tf.gather_nd(self.final_item_embedding, self.item_input)  # shape=(?, 256)
