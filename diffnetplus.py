@@ -37,15 +37,14 @@ class diffnetplus():
 
         #  一、Node Attention initialization  Attention节点初始化 构建图神经网路
         # ----------------------
-        # 1. user-user social network node attention initialization # user-user 社交网络节点注意力初始化
+        # 1. user-user social network node attention initialization
         self.first_low_att_layer_for_social_neighbors_layer1 = tf.layers.Dense(
             units=1,
             activation=tf.nn.sigmoid,  # sigmoid激活函数
             name='first_low_att_SN_layer1'
         )
 
-        self.social_neighbors_indices_input = data_dict['SOCIAL_NEIGHBORS_INDICES_INPUT']  # 259014
-        self.social_neighbors_values_input = data_dict['SOCIAL_NEIGHBORS_VALUES_INPUT']  # 259014
+        self.social_neighbors_indices_input = data_dict['SOCIAL_NEIGHBORS_INDICES_INPUT']  # 259014 .[(u_id1, u_id2)]
 
         self.social_neighbors_values_input1 = tf.reduce_sum(
             tf.math.exp(
@@ -86,7 +85,6 @@ class diffnetplus():
             name='first_low_att_UI_layer1'
         )
 
-        self.user_item_sparsity_dict = data_dict['USER_ITEM_SPARSITY_DICT']
         self.consumed_items_indices_input = data_dict['CONSUMED_ITEMS_INDICES_INPUT']
         self.consumed_items_values_input1 = tf.reduce_sum(
             tf.math.exp(
@@ -208,6 +206,7 @@ class diffnetplus():
         self.first_items_users_neighborslow_level_att_matrix = tf.sparse.softmax(
             self.first_layer_item_customer_sparse_matrix
         )
+
         # ----------------------
         # Second layer
         self.second_layer_social_neighbors_sparse_matrix = tf.SparseTensor(
@@ -569,7 +568,6 @@ class diffnetplus():
 
         # ----------------------
         # Second Layer
-
         user_embedding_from_consumed_items = self.generateUserEmebddingFromConsumedItems2(
             first_gcn_item_embedding
         )  # shape=(17237, 64)
@@ -632,16 +630,21 @@ class diffnetplus():
 
         ######## Prediction Layer # 预测层 ########
 
-        self.final_user_embedding = tf.concat([first_gcn_user_embedding,
-                                               second_gcn_user_embedding,
-                                               self.user_embedding,
-                                               second_user_review_vector_matrix], 1)
-        self.final_item_embedding = tf.concat([first_gcn_item_embedding,
-                                               second_gcn_item_embedding,
-                                               self.item_embedding,
-                                               second_item_review_vector_matrix], 1)
+        self.final_user_embedding = tf.concat([
+            first_gcn_user_embedding,
+            second_gcn_user_embedding,
+            self.user_embedding,
+            second_user_review_vector_matrix
+        ], 1)
+        self.final_item_embedding = tf.concat([
+            first_gcn_item_embedding,
+            second_gcn_item_embedding,
+            self.item_embedding,
+            second_item_review_vector_matrix
+        ], 1)
 
-        latest_user_latent = tf.gather_nd(self.final_user_embedding, self.user_input)  # shape=(?, 256)
+        latest_user_latent = tf.gather_nd(self.final_user_embedding,
+                                          self.user_input)  # shape=(?, 256) user_input'shape=shape=(?, 1)
         latest_item_latent = tf.gather_nd(self.final_item_embedding, self.item_input)  # shape=(?, 256)
 
         self.predict_vector = tf.multiply(latest_user_latent, latest_item_latent)  # shape=(?, 256)
