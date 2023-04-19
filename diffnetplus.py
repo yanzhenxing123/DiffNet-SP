@@ -163,9 +163,11 @@ class diffnetplus():
         self.social_neighbors_dense_shape = np.array(
             [self.conf.num_users, self.conf.num_users]
         ).astype(np.int64)  # [17237, 17237]
+
         self.consumed_items_dense_shape = np.array(
             [self.conf.num_users, self.conf.num_items]
         ).astype(np.int64)  # [17237, 38342]
+
         self.item_customer_dense_shape = np.array(
             [self.conf.num_items, self.conf.num_users]
         ).astype(np.int64)  # [38342, 17237]
@@ -206,16 +208,21 @@ class diffnetplus():
 
         # ----------------------
         # Second layer
+        # (1) user-user
         self.second_layer_social_neighbors_sparse_matrix = tf.SparseTensor(
             indices=self.social_neighbors_indices_input,  # [(user_id1, user_id2)]，二者为朋友 shape=(259014, 2)
             values=self.social_neighbors_values_input2,  # shape=(259014,) 得到一维的向量
             dense_shape=self.social_neighbors_dense_shape  # [17237, 17237]
         )
+
+        # (2) user-item
         self.second_layer_consumed_items_sparse_matrix = tf.SparseTensor(
             indices=self.consumed_items_indices_input,  # [(user_id, item_id)] shape=(185869, 2)
             values=self.consumed_items_values_input2,  # shape=(185869,) 得到一维的向量
             dense_shape=self.consumed_items_dense_shape  # [17237, 38342]
         )
+
+        # (3) item-user
         self.second_layer_item_customer_sparse_matrix = tf.SparseTensor(
             indices=self.item_customer_indices_input,  # [(item_id, user_id)] shape=(185869, 2)
             values=self.item_customer_values_input2,  # shape=(185869,) 得到一维的向量
@@ -253,7 +260,7 @@ class diffnetplus():
 
     def generateUserEmbeddingFromSocialNeighbors1(self, current_user_embedding):
         """
-        从 user-user 生成 user_embedding
+        1.1 从 user-user 生成 user_embedding
 
         self.first_social_neighbors_low_level_att_matrix：softmax过后的社交关系稀疏矩阵 {
             index=[(user_id1, user_id2)]
@@ -271,7 +278,7 @@ class diffnetplus():
 
     def generateUserEmebddingFromConsumedItems1(self, current_item_embedding):
         """
-        从 user-item 生成 user_embedding
+        1.2 从 user-item 生成 user_embedding
 
         self.first_consumed_items_low_level_att_matrix：softmax 过后的user-item稀疏矩阵 {
             index=[(user_id, item_id)]
@@ -288,9 +295,9 @@ class diffnetplus():
 
     def generateItemEmebddingFromCustomer1(self, current_user_embedding):
         """
-        从 item-user 生成 item_embedding
+        1.3从 item-user 生成 item_embedding
 
-        self.first_items_users_neighborslow_level_att_matrix：过后的item-user稀疏矩阵 {
+        self.first_items_users_neighborslow_level_att_matrix：softmax 过后的item-user稀疏矩阵 {
             index=[(item_id, user_id)]
             value=reduce_sum() 185869
             shape=(38342, 17237)
@@ -305,8 +312,13 @@ class diffnetplus():
 
     def generateUserEmbeddingFromSocialNeighbors2(self, current_user_embedding):
         """
-        从 user-user 生成 user_embedding
+        2.1 从 user-user 生成 user_embedding
 
+        self.second_social_neighbors_low_level_att_matrix：softmax过后的社交关系稀疏矩阵 {
+            index=[(user_id1, user_id2)]
+            value=reduce_sum() # shape=(259014,) 得到一维的向量
+            shape=(17237, 17237)
+        }
         :param current_user_embedding:
         :return:
         """
@@ -317,8 +329,13 @@ class diffnetplus():
 
     def generateUserEmebddingFromConsumedItems2(self, current_item_embedding):
         """
-        从 user-items 生成 user_embedding
+        2.2 从 user-items 生成 user_embedding
 
+        self.second_consumed_items_low_level_att_matrix：softmax 过后的user-item稀疏矩阵 {
+            index=[(user_id, item_id)]
+            value=reduce_sum() # shape=(185869,) 得到一维的向量
+            shape=(17237, 38342)
+        }
         :param current_item_embedding:
         :return:
         """
@@ -329,8 +346,13 @@ class diffnetplus():
 
     def generateItemEmebddingFromCustomer2(self, current_user_embedding):
         """
-        从 item-user 生成 item_embedding
+        2.3 从 item-user 生成 item_embedding
 
+        self.second_items_users_neighborslow_level_att_matrix：softmax 过后的item-user稀疏矩阵 {
+            index=[(item_id, user_id)]
+            value=reduce_sum() 185869
+            shape=(38342, 17237)
+        }
         :param current_item_embedding:
         :return:
         """
@@ -344,9 +366,9 @@ class diffnetplus():
         初始化图节点，定义好每个层
         :return:
         """
-        self.item_input = tf.placeholder("int32", [None, 1])  # Get item embedding from the core_item_input
-        self.user_input = tf.placeholder("int32", [None, 1])  # Get user embedding from the core_user_input
-        self.labels_input = tf.placeholder("float32", [None, 1])
+        self.item_input = tf.placeholder("int32", [None, 1])  # item_list: [item_id, ....]
+        self.user_input = tf.placeholder("int32", [None, 1])  # user_list: [0...0, 2, 2, 3, 3]
+        self.labels_input = tf.placeholder("float32", [None, 1])  # labels_list: [0 or 1]
 
         self.user_embedding = tf.Variable(
             tf.random_normal([self.conf.num_users, self.conf.dimension], stddev=0.01),
@@ -362,11 +384,13 @@ class diffnetplus():
         self.user_review_vector_matrix = tf.constant(
             np.load(self.conf.user_review_vector_matrix), dtype=tf.float32
         )  # shape=(17237, 150)
+
         self.item_review_vector_matrix = tf.constant(
             np.load(self.conf.item_review_vector_matrix), dtype=tf.float32
         )  # shape=(38342, 150)
-        self.reduce_dimension_layer = tf.layers.Dense(  # 降维层
-            units=self.conf.dimension,
+
+        self.reduce_dimension_layer = tf.layers.Dense(  # 降维层 -> 64
+            units=self.conf.dimension,  # 64
             activation=tf.nn.sigmoid,
             name='reduce_dimension_layer'
         )
@@ -473,8 +497,10 @@ class diffnetplus():
         """
         ########  Fusion Layer # 融合层 相加操作 ########
 
-        first_user_review_vector_matrix = self.convertDistribution(self.user_review_vector_matrix)  # 转换分布
-        first_item_review_vector_matrix = self.convertDistribution(self.item_review_vector_matrix)  # 转换分布
+        # 转换分布 -> 降维 -> 转换分布
+
+        first_user_review_vector_matrix = self.convertDistribution(self.user_review_vector_matrix)  # shape=(17237, 150)
+        first_item_review_vector_matrix = self.convertDistribution(self.item_review_vector_matrix)  # shape=(38342, 150)
 
         self.user_reduce_dim_vector_matrix = self.reduce_dimension_layer(
             first_user_review_vector_matrix
@@ -490,6 +516,7 @@ class diffnetplus():
             self.item_reduce_dim_vector_matrix
         )  # 转换分布 shape=(38342, 64)
 
+        # 加法融合 item_embedding 和 user_embedding 都是正态分布的随机数
         self.fusion_item_embedding = self.item_embedding + second_item_review_vector_matrix
         self.fusion_user_embedding = self.user_embedding + second_user_review_vector_matrix
 
@@ -497,7 +524,6 @@ class diffnetplus():
 
         # ----------------------
         # First Layer
-
         user_embedding_from_consumed_items = self.generateUserEmebddingFromConsumedItems1(
             self.fusion_item_embedding
         )  # shape=(17237, 64)
@@ -505,7 +531,7 @@ class diffnetplus():
             self.fusion_user_embedding
         )  # shape=(17237, 64)
 
-        # 降维
+        # user attention
         consumed_items_attention = tf.math.exp(
             self.first_user_part_interest_graph_att_layer2(  # leaky_relu
                 self.first_user_part_interest_graph_att_layer1(  # tanh 128 -> 1
@@ -516,7 +542,6 @@ class diffnetplus():
             )
         ) + 0.7  # shape=(17237, 1)
 
-        # 降维
         social_neighbors_attention = tf.math.exp(
             self.first_user_part_social_graph_att_layer2(  # leaky_relu
                 self.first_user_part_social_graph_att_layer1(  # tanh 128 -> 1
@@ -527,6 +552,7 @@ class diffnetplus():
             )
         ) + 0.3  # shape=(17237, 1)
 
+        # self.consumed_items_attention_1 和 self.social_neighbors_attention_1 相当于一个权重
         sum_attention = consumed_items_attention + social_neighbors_attention  # shape=(17237, 1)
         self.consumed_items_attention_1 = consumed_items_attention / sum_attention  # shape=(17237, 1)
         self.social_neighbors_attention_1 = social_neighbors_attention / sum_attention  # shape=(17237, 1)
@@ -536,6 +562,7 @@ class diffnetplus():
                 self.social_neighbors_attention_1 * user_embedding_from_social_neighbors
         )  # shape=(17237, 64)
 
+        # item attention
         item_itself_att = tf.math.exp(
             self.first_item_part_itself_graph_att_layer2(  # leaky_relu
                 self.first_item_part_itself_graph_att_layer1(  # tanh 64 -> 1
@@ -556,18 +583,21 @@ class diffnetplus():
 
         item_sum_attention = item_itself_att + item_customer_attenton  # shape=(38342, 1)
 
+        # self.item_itself_att1 和 self.item_customer_attenton1 相当于一个权重
         self.item_itself_att1 = item_itself_att / item_sum_attention  # shape=(38342, 1)
         self.item_customer_attenton1 = item_customer_attenton / item_sum_attention  # shape=(38342, 1)
 
-        first_gcn_item_embedding = self.item_itself_att1 * self.fusion_item_embedding + \
-                                   self.item_customer_attenton1 * self.generateItemEmebddingFromCustomer1(
-            self.fusion_user_embedding)  # shape=(38342, 64)
+        first_gcn_item_embedding = self.item_itself_att1 * self.fusion_item_embedding + self.item_customer_attenton1 * \
+                                   self.generateItemEmebddingFromCustomer1(
+                                       self.fusion_user_embedding
+                                   )  # shape=(38342, 64)
 
         # ----------------------
         # Second Layer
         user_embedding_from_consumed_items = self.generateUserEmebddingFromConsumedItems2(
             first_gcn_item_embedding
         )  # shape=(17237, 64)
+
         user_embedding_from_social_neighbors = self.generateUserEmbeddingFromSocialNeighbors2(
             first_gcn_user_embedding
         )  # shape=(17237, 64)
@@ -588,6 +618,7 @@ class diffnetplus():
             )
         ) + 0.3  # shape=(17237, 1)
 
+        # self.consumed_items_attention_2 和 self.social_neighbors_attention_2 相当于一个权重
         sum_attention = consumed_items_attention + social_neighbors_attention  # shape=(17237, 1)
         self.consumed_items_attention_2 = consumed_items_attention / sum_attention  # shape=(17237, 1)
         self.social_neighbors_attention_2 = social_neighbors_attention / sum_attention  # shape=(17237, 1)
@@ -615,34 +646,38 @@ class diffnetplus():
             )
         ) + 1.0  # shape=(38342, 1)
 
+        # self.item_itself_att2 和 self.item_customer_attenton2 相当于一个权重
         item_sum_attention = item_itself_att + item_customer_attenton  # shape=(38342, 1)
-
         self.item_itself_att2 = item_itself_att / item_sum_attention  # shape=(38342, 1)
         self.item_customer_attenton2 = item_customer_attenton / item_sum_attention  # shape=(38342, 1)
 
-        second_gcn_item_embedding = \
-            self.item_itself_att2 * first_gcn_item_embedding + self.item_customer_attenton2 * self.generateItemEmebddingFromCustomer2(
-                first_gcn_user_embedding  # (17237, 64)
-            )  # shape=(38342, 64)
+        second_gcn_item_embedding = self.item_itself_att2 * first_gcn_item_embedding + self.item_customer_attenton2 * \
+                                    self.generateItemEmebddingFromCustomer2(
+                                        first_gcn_user_embedding  # (17237, 64)
+                                    )  # shape=(38342, 64)
 
         ######## Prediction Layer # 预测层 ########
 
         self.final_user_embedding = tf.concat([
-            first_gcn_user_embedding,
-            second_gcn_user_embedding,
-            self.user_embedding,
-            second_user_review_vector_matrix
-        ], 1)
-        self.final_item_embedding = tf.concat([
-            first_gcn_item_embedding,
-            second_gcn_item_embedding,
-            self.item_embedding,
-            second_item_review_vector_matrix
-        ], 1)
+            first_gcn_user_embedding,  # shape=(17237, 64) 第一层卷积
+            second_gcn_user_embedding,  # shape=(17237, 64) 第二层卷积
+            self.user_embedding,  # shape=(17237, 64) 正态分布随即变量
+            second_user_review_vector_matrix  # shape=(17237, 64) npy中都出来后处理的
+        ], 1)  # shape=(17237, 256)
 
-        latest_user_latent = tf.gather_nd(self.final_user_embedding,
-                                          self.user_input)  # shape=(?, 256) user_input'shape=shape=(?, 1)
-        latest_item_latent = tf.gather_nd(self.final_item_embedding, self.item_input)  # shape=(?, 256)
+        self.final_item_embedding = tf.concat([
+            first_gcn_item_embedding,  # shape=(38342, 64) 第一层卷积
+            second_gcn_item_embedding,  # shape=(38342, 64) 第二层卷积
+            self.item_embedding,  # shape=(38342, 64) 正态分布随即变量
+            second_item_review_vector_matrix  # shape=(38342, 64) npy中都出来后处理的
+        ], 1)  # shape=(38342, 256)
+
+        latest_user_latent = tf.gather_nd(
+            self.final_user_embedding, self.user_input
+        )  # shape=(?, 256) user_input'shape=(?, 1)
+        latest_item_latent = tf.gather_nd(
+            self.final_item_embedding, self.item_input
+        )  # shape=(?, 256) item_input'shape=(?, 1)
 
         self.predict_vector = tf.multiply(latest_user_latent, latest_item_latent)  # shape=(?, 256)
         self.prediction = tf.sigmoid(tf.reduce_sum(self.predict_vector, 1, keepdims=True))  # shape=(?, 1)
