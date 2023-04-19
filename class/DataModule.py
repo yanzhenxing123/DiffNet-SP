@@ -63,6 +63,10 @@ class DataModule():
         self.generateEvaNegative()
 
     def linkedMap(self):
+        """
+        关联数据字典
+        :return:
+        """
         self.data_dict['USER_LIST'] = self.user_list
         self.data_dict['ITEM_LIST'] = self.item_list
         self.data_dict['LABEL_LIST'] = self.labels_list
@@ -250,7 +254,7 @@ class DataModule():
             batch_user_list = total_user_list[index:index + batch_size]
             self.index = index + batch_size
         else:
-            terminal_flag = 0
+            terminal_flag = 0 # 停止
             batch_user_list = total_user_list[index:total_users]
             self.index = 0
         for u in batch_user_list:

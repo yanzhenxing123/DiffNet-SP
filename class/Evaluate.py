@@ -20,9 +20,25 @@ class Evaluate():
         hit = 1.0
         return hit
 
-    def evaluateRankingPerformance(self, evaluate_index_dict, evaluate_real_rating_matrix,
-                                   evaluate_predict_rating_matrix, topK, num_procs, exp_flag=0, sp_name=None,
-                                   result_file=None):
+    def evaluateRankingPerformance(self,
+                                   evaluate_index_dict,
+                                   evaluate_real_rating_matrix,
+                                   evaluate_predict_rating_matrix,
+                                   topK,
+                                   num_procs,
+                                   exp_flag=0, sp_name=None, result_file=None):
+        """
+        获取评测指标
+        :param evaluate_index_dict:
+        :param evaluate_real_rating_matrix:
+        :param evaluate_predict_rating_matrix:
+        :param topK:
+        :param num_procs:
+        :param exp_flag:
+        :param sp_name:
+        :param result_file:
+        :return:
+        """
         user_list = list(evaluate_index_dict.keys())
         batch_size = int(len(user_list) / num_procs)
 

@@ -898,12 +898,14 @@ class diffnetplus():
 
         ######## Prediction Layer # 预测层 ########
 
-        self.final_user_embedding = \
-            tf.concat([first_gcn_user_embedding, second_gcn_user_embedding, self.user_embedding,
-                       second_user_review_vector_matrix], 1)
-        self.final_item_embedding = \
-            tf.concat([first_gcn_item_embedding, second_gcn_item_embedding, self.item_embedding,
-                       second_item_review_vector_matrix], 1)
+        self.final_user_embedding = tf.concat([first_gcn_user_embedding,
+                                               second_gcn_user_embedding,
+                                               self.user_embedding,
+                                               second_user_review_vector_matrix], 1)
+        self.final_item_embedding = tf.concat([first_gcn_item_embedding,
+                                               second_gcn_item_embedding,
+                                               self.item_embedding,
+                                               second_item_review_vector_matrix], 1)
 
         '''
         self.final_user_embedding = second_gcn_user_embedding
@@ -970,22 +972,6 @@ class diffnetplus():
             'val': self.loss,
             'test': self.loss,
             'eva': self.prediction,
-            'first_layer_ana': self.first_layer_analy,
-            'second_layer_ana': self.second_layer_analy,
-            'first_layer_item_ana': self.first_layer_item_analy,
-            'second_layer_item_ana': self.second_layer_item_analy,
-            'prediction': self.predict_vector,
-            'user': self.final_user_embedding,
-            'item': self.final_item_embedding,
-            'low_att_user_user': self.first_user_user_low_att,
-            'low_att_user_item': self.first_user_item_low_att,
-            'low_att_user_user': self.first_item_user_low_att,
-            'first_social_neighbors_low_att_matrix': self.first_social_neighbors_low_level_att_matrix,
-            'second_social_neighbors_low_att_matrix': self.second_social_neighbors_low_level_att_matrix,
-            'first_consumed_items_low_level_att_matrix': self.first_consumed_items_low_level_att_matrix,
-            'second_consumed_items_low_level_att_matrix': self.second_consumed_items_low_level_att_matrix,
-            'first_items_users_neighborslow_level_att_matrix': self.first_items_users_neighborslow_level_att_matrix,
-            'second_items_users_neighborslow_level_att_matrix': self.second_items_users_neighborslow_level_att_matrix,
         }
 
         self.map_dict = map_dict

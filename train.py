@@ -8,6 +8,7 @@ import tensorflow as tf
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # ignore the warnings
 
 from Logging import Logging
+from loguru import logger
 
 
 def start(conf, data, model, evaluate):
@@ -57,38 +58,37 @@ def start(conf, data, model, evaluate):
 
     # Start Training 
     for epoch in range(1, conf.epochs + 1):  # epochs=450
-
         tmp_train_loss = []
         t0 = time()
-
-        # tmp_total_list = []
         while d_train.terminal_flag:
-
             d_train.getTrainRankingBatch()
             d_train.linkedMap()
-
-            train_feed_dict = {}
+            train_feed_dict = {}  # 训练投喂数据
             for (key, value) in model.map_dict['train'].items():
-                train_feed_dict[key] = d_train.data_dict[value]
-
-            [sub_train_loss, _] = sess.run([model.map_dict['out']['train'], model.opt], feed_dict=train_feed_dict)
+                train_feed_dict[key] = d_train.data_dict[value]  # {placehoder: data}
+            [sub_train_loss, _] = sess.run(
+                [model.map_dict['out']['train'], model.opt],
+                feed_dict=train_feed_dict
+            )
             tmp_train_loss.append(sub_train_loss)
 
         train_loss = np.mean(tmp_train_loss)
-        t1 = time()
-
+        logger.info("*" * 10)
         # ----------------------
         # compute val loss and test loss
+
+        # 验证集
         d_val.getVTRankingOneBatch()
         d_val.linkedMap()
-        val_feed_dict = {}
+        val_feed_dict = {}  # 验证投喂数据
         for (key, value) in model.map_dict['val'].items():
             val_feed_dict[key] = d_val.data_dict[value]
         val_loss = sess.run(model.map_dict['out']['val'], feed_dict=val_feed_dict)
 
+        # 测试集
         d_test.getVTRankingOneBatch()
         d_test.linkedMap()
-        test_feed_dict = {}
+        test_feed_dict = {}  # 测试投喂数据
         for (key, value) in model.map_dict['test'].items():
             test_feed_dict[key] = d_test.data_dict[value]
         test_loss = sess.run(model.map_dict['out']['test'], feed_dict=test_feed_dict)
@@ -130,8 +130,8 @@ def start(conf, data, model, evaluate):
                     sess.run(
                         model.map_dict['out']['eva'],
                         feed_dict=eva_feed_dict
-                    ),
-                    [-1, conf.num_evaluate])
+                    ), [-1, conf.num_evaluate]
+                )
                 for u in batch_user_list:
                     negative_predictions[u] = tmp_negative_predictions[index]
                     index = index + 1
@@ -181,4 +181,4 @@ def start(conf, data, model, evaluate):
             ((tt3 - tt2), hr_5, ndcg_5, hr_10, ndcg_10, hr_15, ndcg_15)
         )
 
-        d_train.generateTrainNegative()
+        d_train.generateTrainNegative()  # 只生成训练集的负面数据
