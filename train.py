@@ -97,6 +97,10 @@ def start(conf, data, model, evaluate):
         # ----------------------
         # start evaluate model performance, hr and ndcg
         def getPositivePredictions():
+            """
+            正面样本预测
+            :return:
+            """
             d_test_eva.getEvaPositiveBatch()
             d_test_eva.linkedRankingEvaMap()
             eva_feed_dict = {}
@@ -109,6 +113,10 @@ def start(conf, data, model, evaluate):
             return positive_predictions
 
         def getNegativePredictions():
+            """
+            负面样本预测
+            :return:
+            """
             negative_predictions = {}
             terminal_flag = 1
             while terminal_flag:
