@@ -626,6 +626,7 @@ class diffnetplus():
             name='item_embedding'
         )  # [38342, 64]
 
+        # 从本地npy读出来
         self.user_review_vector_matrix = tf.constant(np.load(self.conf.user_review_vector_matrix),
                                                      dtype=tf.float32)  # shape=(17237, 150)
         self.item_review_vector_matrix = tf.constant(np.load(self.conf.item_review_vector_matrix),
@@ -848,15 +849,6 @@ class diffnetplus():
                 self.consumed_items_attention_2 * user_embedding_from_consumed_items
                 + self.social_neighbors_attention_2 * user_embedding_from_social_neighbors
         )  # shape=(17237, 64)
-
-        second_mean_social_influ, second_var_social_influ = tf.nn.moments(self.social_neighbors_attention_2, axes=0)
-        second_mean_interest_influ, second_var_interest_influ = tf.nn.moments(self.consumed_items_attention_2, axes=0)
-        self.second_layer_analy = [
-            second_mean_social_influ,
-            second_var_social_influ,
-            second_mean_interest_influ,
-            second_var_interest_influ
-        ]
 
         item_itself_att = tf.math.exp(
             self.second_item_part_itself_graph_att_layer2(  # leaky_relu

@@ -183,7 +183,7 @@ class DataModule():
         index = self.index
         batch_size = self.conf.training_batch_size
 
-        user_list, item_list, labels_list = [], [], []
+        user_list, item_list, labels_list = [], [], [] # user_list: [0...0, 1, 1, 1]
 
         if index + batch_size < len(total_user_list):
             target_user_list = total_user_list[index:index + batch_size]
@@ -194,9 +194,11 @@ class DataModule():
             self.terminal_flag = 0
 
         for u in target_user_list:
+            # positive
             user_list.extend([u] * len(positive_data[u]))
             item_list.extend(list(positive_data[u]))
             labels_list.extend([1] * len(positive_data[u]))
+            # negative
             user_list.extend([u] * len(negative_data[u]))
             item_list.extend(list(negative_data[u]))
             labels_list.extend([0] * len(negative_data[u]))
