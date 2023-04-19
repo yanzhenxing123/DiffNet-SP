@@ -42,10 +42,6 @@ class diffnetplus():
                                                                                activation=tf.nn.sigmoid,  # sigmoid激活函数
                                                                                name='first_low_att_SN_layer1')
 
-        self.first_low_att_layer_for_social_neighbors_layer2 = tf.layers.Dense(units=1,  # 输出神经元的数量
-                                                                               activation=tf.nn.leaky_relu,  # relu激活函数
-                                                                               name='first_low_att_SN_layer2')
-
         self.social_neighbors_indices_input = data_dict['SOCIAL_NEIGHBORS_INDICES_INPUT']  # 259014
         self.social_neighbors_values_input = data_dict['SOCIAL_NEIGHBORS_VALUES_INPUT']  # 259014
 
@@ -61,17 +57,10 @@ class diffnetplus():
             ), 1
         )  # shape=(259014,) 得到一维的向量
 
-        first_mean_social_influ, first_var_social_influ = tf.nn.moments(self.social_neighbors_values_input1,
-                                                                        axes=0)  # 均值和方差
-        self.first_user_user_low_att = [first_mean_social_influ, first_var_social_influ]  # 均值和方差
-
         # second_low attention # 和上边一样
         self.second_low_att_layer_for_social_neighbors_layer1 = tf.layers.Dense(units=1,  # 输出神经元的数量 原来为1 还是为1
                                                                                 activation=tf.nn.sigmoid,  # sigmoid激活函数
                                                                                 name='second_low_att_SN_layer1')
-        self.second_low_att_layer_for_social_neighbors_layer2 = tf.layers.Dense(units=1,  # 输出神经元的数量 原来为1 还是为1
-                                                                                activation=tf.nn.leaky_relu,
-                                                                                name='second_low_att_SN_layer2')
 
         self.social_neighbors_values_input2 = tf.reduce_sum(
             tf.math.exp(
@@ -85,20 +74,11 @@ class diffnetplus():
             ), 1
         )
 
-        self.social_neighbors_values_input3 = tf.Variable(
-            tf.random_normal([len(self.social_neighbors_indices_input)], stddev=0.01)
-        )  # 正态分布 259014
-        self.social_neighbors_num_input = 1.0 / np.reshape(data_dict['SOCIAL_NEIGHBORS_NUM_INPUT'],
-                                                           [-1, 1])  # user' friends 17237
-
         # ----------------------
         # 2. user-item interest graph node attention initialization # user-item 图节点attention初始化
         self.first_low_att_layer_for_user_item_layer1 = tf.layers.Dense(1,
                                                                         activation=tf.nn.sigmoid,
                                                                         name='first_low_att_UI_layer1')
-        self.first_low_att_layer_for_user_item_layer2 = tf.layers.Dense(1,
-                                                                        activation=tf.nn.leaky_relu,
-                                                                        name='first_low_att_UI_layer2')
 
         self.user_item_sparsity_dict = data_dict['USER_ITEM_SPARSITY_DICT']
         self.consumed_items_indices_input = data_dict['CONSUMED_ITEMS_INDICES_INPUT']
@@ -118,15 +98,10 @@ class diffnetplus():
         )  # 185869
 
         # 均值、方差
-        first_mean_social_influ, first_var_social_influ = tf.nn.moments(self.consumed_items_values_input1, axes=0)
-        self.first_user_item_low_att = [first_mean_social_influ, first_var_social_influ]
 
         self.second_low_att_layer_for_user_item_layer1 = tf.layers.Dense(1,
                                                                          activation=tf.nn.sigmoid,
                                                                          name='second_low_att_UI_layer1')
-        self.second_low_att_layer_for_user_item_layer2 = tf.layers.Dense(1,
-                                                                         activation=tf.nn.leaky_relu,
-                                                                         name='second_low_att_UI_layer2')
         self.consumed_items_values_input2 = tf.reduce_sum(
             tf.math.exp(
                 self.second_low_att_layer_for_user_item_layer1(
@@ -141,19 +116,11 @@ class diffnetplus():
             ), 1
         )
 
-        self.consumed_items_values_input3 = tf.Variable(
-            tf.random_normal([len(self.consumed_items_indices_input)], stddev=0.01)
-        )  # 正态分布 185869
-        self.consumed_items_num_input = 1.0 / np.reshape(data_dict['CONSUMED_ITEMS_NUM_INPUT'], [-1, 1])  # 17237个用户
-
         # ----------------------
         # 3. item-user graph node attention initialization # item-user 图节点注意力初始化
         self.first_low_att_layer_for_item_user_layer1 = tf.layers.Dense(1,
                                                                         activation=tf.nn.sigmoid,
                                                                         name='first_low_att_IU_layer1')
-        self.first_low_att_layer_for_item_user_layer2 = tf.layers.Dense(1,
-                                                                        activation=tf.nn.leaky_relu,
-                                                                        name='first_low_att_IU_layer2')
 
         self.item_customer_indices_input = data_dict['ITEM_CUSTOMER_INDICES_INPUT']
         self.item_customer_values_input = data_dict['ITEM_CUSTOMER_VALUES_INPUT']
@@ -170,15 +137,9 @@ class diffnetplus():
             ), 1
         )
 
-        first_mean_social_influ, first_var_social_influ = tf.nn.moments(self.item_customer_values_input1, axes=0)
-        self.first_item_user_low_att = [first_mean_social_influ, first_var_social_influ]
-
         self.second_low_att_layer_for_item_user_layer1 = tf.layers.Dense(1,
                                                                          activation=tf.nn.sigmoid,
                                                                          name='second_low_att_IU_layer1')
-        self.second_low_att_layer_for_item_user_layer2 = tf.layers.Dense(1,
-                                                                         activation=tf.nn.leaky_relu,
-                                                                         name='second_low_att_IU_layer2')
         self.item_customer_values_input2 = tf.reduce_sum(
             tf.math.exp(
                 self.second_low_att_layer_for_item_user_layer1(
@@ -192,11 +153,6 @@ class diffnetplus():
                 )
             ), 1)
 
-        self.item_customer_values_input3 = tf.Variable(
-            tf.random_normal([len(self.item_customer_indices_input)], stddev=0.01)
-        )  # 正态分布 185869
-        self.item_customer_num_input = 1.0 / np.reshape(data_dict['ITEM_CUSTOMER_NUM_INPUT'], [-1, 1])
-
         # ----------------------
         # 4. prepare the shape of sparse matrice # 准备稀疏矩阵的形状
         self.social_neighbors_dense_shape = np.array([self.conf.num_users,
@@ -209,45 +165,33 @@ class diffnetplus():
         ########  二、Rough Graph Attention initialization ######## # 粗糙图attention初始化
         """
         delete all
-        """
         # ----------------------
         # 1. User part
 
         # ----------------------
         # 2. Item part
+        """
 
 
         ######## 三、Generate Sparse Matrices with/without attention # with/without 生成稀疏矩阵 #########
         # ----------------------
         # Frist Layer
         # (1) user-user
-        self.social_neighbors_sparse_matrix_avg = tf.SparseTensor(
-            indices=self.social_neighbors_indices_input,  # [(user_id1, user_id2)]，二者为朋友 shape=(259014, 2)
-            values=self.social_neighbors_values_input,  # [1.0 / len(friends)]
-            dense_shape=self.social_neighbors_dense_shape  # [17237, 17237]
-        )
+
         self.first_layer_social_neighbors_sparse_matrix = tf.SparseTensor(
             indices=self.social_neighbors_indices_input,  # [(user_id1, user_id2)]，二者为朋友 shape=(259014, 2)
             values=self.social_neighbors_values_input1,  # shape=(259014,) 得到一维的向量
             dense_shape=self.social_neighbors_dense_shape  # [17237, 17237]
         )
         # (2) user-item
-        self.consumed_items_sparse_matrix_avg = tf.SparseTensor(
-            indices=self.consumed_items_indices_input,  # [(user_id, item_id)] shape=(185869, 2)
-            values=self.consumed_items_values_input,  # [1.0 / len(consumed_items_dict[u]]  185869
-            dense_shape=self.consumed_items_dense_shape  # [17237, 38342]
-        )
+
         self.first_layer_consumed_items_sparse_matrix = tf.SparseTensor(
             indices=self.consumed_items_indices_input,  # [(user_id, item_id)] shape=(185869, 2)
             values=self.consumed_items_values_input1,  # shape=(185869,) 得到一维的向量
             dense_shape=self.consumed_items_dense_shape  # [17237, 38342]
         )
         # (3) item-user
-        self.item_customer_sparse_matrix_avg = tf.SparseTensor(
-            indices=self.item_customer_indices_input,  # [(item_id, user_id)] shape=(185869, 2)
-            values=self.item_customer_values_input,  # [1.0 / len(item_customer_dict[i]] 185869
-            dense_shape=self.item_customer_dense_shape  # [38342, 17237]
-        )
+
         self.first_layer_item_customer_sparse_matrix = tf.SparseTensor(
             indices=self.item_customer_indices_input,  # [(item_id, user_id)] shape=(185869, 2)
             values=self.item_customer_values_input1,  # shape=(185869,) 得到一维的向量
