@@ -770,15 +770,6 @@ class diffnetplus():
                 self.social_neighbors_attention_1 * user_embedding_from_social_neighbors
         )  # shape=(17237, 64)
 
-        first_mean_social_influ, first_var_social_influ = tf.nn.moments(self.social_neighbors_attention_1, axes=0)
-        first_mean_interest_influ, first_var_interest_influ = tf.nn.moments(self.consumed_items_attention_1, axes=0)
-        self.first_layer_analy = [
-            first_mean_social_influ,
-            first_var_social_influ,
-            first_mean_interest_influ,
-            first_var_interest_influ
-        ]
-
         item_itself_att = tf.math.exp(
             self.first_item_part_itself_graph_att_layer2(  # leaky_relu
                 self.first_item_part_itself_graph_att_layer1(  # tanh 64 -> 1
@@ -805,15 +796,6 @@ class diffnetplus():
         first_gcn_item_embedding = self.item_itself_att1 * self.fusion_item_embedding + \
                                    self.item_customer_attenton1 * self.generateItemEmebddingFromCustomer1(
             self.fusion_user_embedding)  # shape=(38342, 64)
-
-        first_mean_social_influ1, first_var_social_influ1 = tf.nn.moments(self.item_itself_att1, axes=0)
-        first_mean_interest_influ1, first_var_interest_influ1 = tf.nn.moments(self.item_customer_attenton1, axes=0)
-        self.first_layer_item_analy = [
-            first_mean_social_influ1,
-            first_var_social_influ1,
-            first_mean_interest_influ1,
-            first_var_interest_influ1
-        ]
 
         # ----------------------
         # Second Layer
