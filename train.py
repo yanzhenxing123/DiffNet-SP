@@ -130,7 +130,7 @@ def start(conf, data, model, evaluate):
                     sess.run(
                         model.map_dict['out']['eva'],
                         feed_dict=eva_feed_dict
-                    ), [-1, conf.num_evaluate]
+                    ), [-1, conf.num_evaluate]  # [-1, 1000]
                 )
                 for u in batch_user_list:
                     negative_predictions[u] = tmp_negative_predictions[index]

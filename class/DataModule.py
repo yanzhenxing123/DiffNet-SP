@@ -225,6 +225,10 @@ class DataModule():
     # ----------------------
     # This function is designed for generating negative data
     def generateEvaNegative(self):
+        """
+        生成评估的负面数据
+        :return:
+        """
         hash_data = self.hash_data
         total_user_list = self.total_user_list
         num_evaluate = self.conf.num_evaluate
@@ -241,9 +245,9 @@ class DataModule():
     # ----------------------
     # This function designs for generating negative batch in rating evaluation,
     def getEvaRankingBatch(self):
-        batch_size = self.conf.evaluate_batch_size
-        num_evaluate = self.conf.num_evaluate
-        eva_negative_data = self.eva_negative_data
+        batch_size = self.conf.evaluate_batch_size  # 2560
+        num_evaluate = self.conf.num_evaluate  # 1000
+        eva_negative_data = self.eva_negative_data # 负面数据
         total_user_list = self.total_user_list
         index = self.index
         terminal_flag = 1
@@ -254,7 +258,7 @@ class DataModule():
             batch_user_list = total_user_list[index:index + batch_size]
             self.index = index + batch_size
         else:
-            terminal_flag = 0 # 停止
+            terminal_flag = 0  # 停止
             batch_user_list = total_user_list[index:total_users]
             self.index = 0
         for u in batch_user_list:
