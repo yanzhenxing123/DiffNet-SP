@@ -381,35 +381,6 @@ class diffnetplus():
             self.second_layer_item_customer_sparse_matrix
         )
 
-        # ----------------------
-        # Third layer 
-        self.third_layer_social_neighbors_sparse_matrix = tf.SparseTensor(
-            indices=self.social_neighbors_indices_input,  # [(user_id1, user_id2)]，二者为朋友 shape=(259014, 2)
-            values=self.social_neighbors_values_input3,  # 正态分布 259014
-            dense_shape=self.social_neighbors_dense_shape  # [17237, 17237]
-        )
-        self.third_layer_consumed_items_sparse_matrix = tf.SparseTensor(
-            indices=self.consumed_items_indices_input,  # [(user_id, item_id)] shape=(185869, 2)
-            values=self.consumed_items_values_input3,  # 正态分布 185869
-            dense_shape=self.consumed_items_dense_shape  # [17237, 38342]
-        )
-        self.third_layer_item_customer_sparse_matrix = tf.SparseTensor(
-            indices=self.item_customer_indices_input,  # [(item_id, user_id)] shape=(185869, 2)
-            values=self.item_customer_values_input3,  # 正态分布 185869
-            dense_shape=self.item_customer_dense_shape  # [38342, 17237]
-        )
-
-        # 对第三层稀疏矩阵进行softmax
-        self.third_social_neighbors_low_level_att_matrix = tf.sparse.softmax(
-            self.third_layer_social_neighbors_sparse_matrix
-        )
-        self.third_consumed_items_low_level_att_matrix = tf.sparse.softmax(
-            self.third_layer_consumed_items_sparse_matrix
-        )
-        self.third_items_users_neighborslow_level_att_matrix = tf.sparse.softmax(
-            self.third_layer_item_customer_sparse_matrix
-        )
-
     def convertDistribution(self, x):
         """
         转换分布, 将数据标准化到一个较小的范围内, 所以乘以 0.1
@@ -423,12 +394,11 @@ class diffnetplus():
     # ----------------------
     # Operations for Diffusion # 扩散操作
     """
-    Note:
+    Notes:
     - SocialNeighbors: user-user
     - ConsumedItems: user-item
     - Customer: item-user
     """
-
 
     def generateUserEmbeddingFromSocialNeighbors1(self, current_user_embedding):
         """
@@ -449,7 +419,6 @@ class diffnetplus():
         )
         return user_embedding_from_social_neighbors
 
-
     def generateUserEmebddingFromConsumedItems1(self, current_item_embedding):
         """
         从 user-item 生成 user_embedding
@@ -467,7 +436,6 @@ class diffnetplus():
             self.first_consumed_items_low_level_att_matrix, current_item_embedding
         )
         return user_embedding_from_consumed_items
-
 
     def generateItemEmebddingFromCustomer1(self, current_user_embedding):
         """
@@ -521,7 +489,6 @@ class diffnetplus():
             self.second_items_users_neighborslow_level_att_matrix, current_user_embedding
         )
         return item_embedding_from_customer
-
 
     def initializeNodes(self):
         """
