@@ -38,14 +38,13 @@ class diffnetplus():
         #  一、Node Attention initialization  Attention节点初始化 构建图神经网路
         # ----------------------
         # 1. user-user social network node attention initialization
+        self.social_neighbors_indices_input = data_dict['SOCIAL_NEIGHBORS_INDICES_INPUT']  # 259014 [(u_id1, u_id2)]
+
         self.first_low_att_layer_for_social_neighbors_layer1 = tf.layers.Dense(
             units=1,
             activation=tf.nn.sigmoid,  # sigmoid激活函数
             name='first_low_att_SN_layer1'
         )
-
-        self.social_neighbors_indices_input = data_dict['SOCIAL_NEIGHBORS_INDICES_INPUT']  # 259014 .[(u_id1, u_id2)]
-
         self.social_neighbors_values_input1 = tf.reduce_sum(
             tf.math.exp(
                 self.first_low_att_layer_for_social_neighbors_layer1(
@@ -58,13 +57,12 @@ class diffnetplus():
             ), 1
         )  # shape=(259014,) 得到一维的向量
 
-        # second_low attention # 和上边一样
+        # second_low attention
         self.second_low_att_layer_for_social_neighbors_layer1 = tf.layers.Dense(
             units=1,
             activation=tf.nn.sigmoid,  # sigmoid激活函数
             name='second_low_att_SN_layer1'
         )
-
         self.social_neighbors_values_input2 = tf.reduce_sum(
             tf.math.exp(
                 self.second_low_att_layer_for_social_neighbors_layer1(
@@ -75,17 +73,17 @@ class diffnetplus():
                     )
                 )
             ), 1
-        )
+        )  # shape=(259014,)
 
         # ----------------------
-        # 2. user-item interest graph node attention initialization # user-item 图节点attention初始化
+        # 2. user-item interest graph node attention initialization
+        self.consumed_items_indices_input = data_dict['CONSUMED_ITEMS_INDICES_INPUT']  # 185869 [(user_id, item_id)]
+
         self.first_low_att_layer_for_user_item_layer1 = tf.layers.Dense(
             units=1,
             activation=tf.nn.sigmoid,
             name='first_low_att_UI_layer1'
         )
-
-        self.consumed_items_indices_input = data_dict['CONSUMED_ITEMS_INDICES_INPUT']
         self.consumed_items_values_input1 = tf.reduce_sum(
             tf.math.exp(
                 self.first_low_att_layer_for_user_item_layer1(
@@ -98,9 +96,7 @@ class diffnetplus():
                     )
                 )
             ), 1
-        )  # 185869
-
-        # 均值、方差
+        )  # shape=(185869,)
 
         self.second_low_att_layer_for_user_item_layer1 = tf.layers.Dense(
             units=1,
@@ -119,17 +115,17 @@ class diffnetplus():
                     )
                 )
             ), 1
-        )
+        )  # shape=(185869,)
 
         # ----------------------
-        # 3. item-user graph node attention initialization # item-user 图节点注意力初始化
+        # 3. item-user graph node attention initialization
+        self.item_customer_indices_input = data_dict['ITEM_CUSTOMER_INDICES_INPUT']  # 185869 [(item_id, user_id)]
+
         self.first_low_att_layer_for_item_user_layer1 = tf.layers.Dense(
             units=1,
             activation=tf.nn.sigmoid,
             name='first_low_att_IU_layer1'
         )
-
-        self.item_customer_indices_input = data_dict['ITEM_CUSTOMER_INDICES_INPUT']
         self.item_customer_values_input1 = tf.reduce_sum(
             tf.math.exp(
                 self.first_low_att_layer_for_item_user_layer1(
@@ -159,7 +155,8 @@ class diffnetplus():
                         ), [-1, 1]
                     )
                 )
-            ), 1)
+            ), 1
+        )
 
         # ----------------------
         # 4. prepare the shape of sparse matrice # 准备稀疏矩阵的形状
