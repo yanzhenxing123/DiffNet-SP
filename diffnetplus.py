@@ -801,10 +801,9 @@ class diffnetplus():
         self.item_itself_att1 = item_itself_att / item_sum_attention  # shape=(38342, 1)
         self.item_customer_attenton1 = item_customer_attenton / item_sum_attention  # shape=(38342, 1)
 
-        first_gcn_item_embedding = self.item_itself_att1 * self.fusion_item_embedding
-        + self.item_customer_attenton1 * self.generateItemEmebddingFromCustomer1(
-            self.fusion_user_embedding
-        )  # shape=(38342, 64)
+        first_gcn_item_embedding = self.item_itself_att1 * self.fusion_item_embedding + \
+                                   self.item_customer_attenton1 * self.generateItemEmebddingFromCustomer1(
+            self.fusion_user_embedding)  # shape=(38342, 64)
 
         first_mean_social_influ1, first_var_social_influ1 = tf.nn.moments(self.item_itself_att1, axes=0)
         first_mean_interest_influ1, first_var_interest_influ1 = tf.nn.moments(self.item_customer_attenton1, axes=0)
