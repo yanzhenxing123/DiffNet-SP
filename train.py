@@ -1,15 +1,14 @@
 from __future__ import division
 import os, sys, shutil
 
-
 from time import time
 import numpy as np
 import tensorflow as tf
 
-
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' #ignore the warnings 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # ignore the warnings
 
 from Logging import Logging
+
 
 def start(conf, data, model, evaluate):
     log_dir = os.path.join(os.getcwd(), 'log')
@@ -24,7 +23,7 @@ def start(conf, data, model, evaluate):
     # start to initialize data for training and evaluating
     data.initializeRankingHandle()
     d_train, d_val, d_test, d_test_eva = data.train, data.val, data.test, data.test_eva
-    
+
     print('System start to load data...')
     t0 = time()
     d_train.initializeRankingTrain()
@@ -38,31 +37,31 @@ def start(conf, data, model, evaluate):
     # prepare necessary data for diffnet++.
     print('System start to load graph...')
     data_dict = d_train.prepareModelSupplement(model)
-    model.inputSupply(data_dict)
-    model.startConstructGraph()
+    model.inputSupply(data_dict)  # 提供数据
+    model.startConstructGraph()  # 创建图 self.initializeNodes() self.constructTrainGraph()
 
     # ----------------------
     # standard tensorflow running environment initialize
     tf_conf = tf.ConfigProto()
-    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
     tf_conf.gpu_options.allow_growth = True
     sess = tf.Session(config=tf_conf)
-    sess.run(model.init)
+    sess.run(model.init)  # sess.run(tf.global_variables_initializer())
 
     if conf.pretrain_flag == 1:
         model.saver.restore(sess, conf.pre_model)
-   
+
     log = Logging(log_path)
     print()
     log.record('Following will output the evaluation of the model:')
 
     # Start Training 
-    for epoch in range(1, conf.epochs+1):
+    for epoch in range(1, conf.epochs + 1):  # epochs=450
 
         tmp_train_loss = []
         t0 = time()
-     
-        #tmp_total_list = []
+
+        # tmp_total_list = []
         while d_train.terminal_flag:
 
             d_train.getTrainRankingBatch()
@@ -72,10 +71,8 @@ def start(conf, data, model, evaluate):
             for (key, value) in model.map_dict['train'].items():
                 train_feed_dict[key] = d_train.data_dict[value]
 
-            [sub_train_loss, _] = sess.run(\
-                [model.map_dict['out']['train'], model.opt], feed_dict=train_feed_dict)
+            [sub_train_loss, _] = sess.run([model.map_dict['out']['train'], model.opt], feed_dict=train_feed_dict)
             tmp_train_loss.append(sub_train_loss)
-  
 
         train_loss = np.mean(tmp_train_loss)
         t1 = time()
@@ -88,7 +85,6 @@ def start(conf, data, model, evaluate):
         for (key, value) in model.map_dict['val'].items():
             val_feed_dict[key] = d_val.data_dict[value]
         val_loss = sess.run(model.map_dict['out']['val'], feed_dict=val_feed_dict)
-
 
         d_test.getVTRankingOneBatch()
         d_test.linkedMap()
@@ -138,41 +134,43 @@ def start(conf, data, model, evaluate):
         index_dict = d_test_eva.eva_index_dict
         positive_predictions = getPositivePredictions()
         negative_predictions = getNegativePredictions()
-        
-        # prepare for new batch
-        d_test_eva.index = 0 
 
-        hr_5, ndcg_5 = evaluate.evaluateRankingPerformance(\
-            index_dict, positive_predictions, negative_predictions, conf.top5, conf.num_procs)
-        hr_10, ndcg_10 = evaluate.evaluateRankingPerformance(\
-            index_dict, positive_predictions, negative_predictions, conf.top10, conf.num_procs)
-        hr_15, ndcg_15 = evaluate.evaluateRankingPerformance(\
-            index_dict, positive_predictions, negative_predictions, conf.top15, conf.num_procs)
-        
+        # prepare for new batch
+        d_test_eva.index = 0
+
+        hr_5, ndcg_5 = evaluate.evaluateRankingPerformance(
+            evaluate_index_dict=index_dict,
+            evaluate_real_rating_matrix=positive_predictions,
+            evaluate_predict_rating_matrix=negative_predictions,
+            topK=conf.top5,
+            num_procs=conf.num_procs
+        )
+        hr_10, ndcg_10 = evaluate.evaluateRankingPerformance(
+            evaluate_index_dict=index_dict,
+            evaluate_real_rating_matrix=positive_predictions,
+            evaluate_predict_rating_matrix=negative_predictions,
+            topK=conf.top10,
+            num_procs=conf.num_procs
+        )
+        hr_15, ndcg_15 = evaluate.evaluateRankingPerformance(
+            evaluate_index_dict=index_dict,
+            evaluate_real_rating_matrix=positive_predictions,
+            evaluate_predict_rating_matrix=negative_predictions,
+            topK=conf.top15,
+            num_procs=conf.num_procs
+        )
+
         tt3 = time()
 
         # ----------------------
         # print log to console and log_file
-        log.record('Epoch:%d, compute loss cost:%.4fs, train loss:%.4f, val loss:%.4f, test loss:%.4f' % \
-            (epoch, (t2-t0), train_loss, val_loss, test_loss))
-        log.record('Evaluate cost:%.4fs \n Top5: hr:%.4f, ndcg:%.4f \n Top10: hr:%.4f, ndcg:%.4f \n Top15: hr:%.4f, ndcg:%.4f' % ((tt3-tt2), hr_5, ndcg_5,hr_10, ndcg_10, hr_15, ndcg_15))
+        log.record(
+            'Epoch:%d, compute loss cost:%.4fs, train loss:%.4f, val loss:%.4f, test loss:%.4f' %
+            (epoch, (t2 - t0), train_loss, val_loss, test_loss)
+        )
+        log.record(
+            'Evaluate cost:%.4fs \n Top5: hr:%.4f, ndcg:%.4f \n Top10: hr:%.4f, ndcg:%.4f \n Top15: hr:%.4f, ndcg:%.4f' %
+            ((tt3 - tt2), hr_5, ndcg_5, hr_10, ndcg_10, hr_15, ndcg_15)
+        )
 
         d_train.generateTrainNegative()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

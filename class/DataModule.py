@@ -128,6 +128,11 @@ class DataModule():
     # ----------------------
     # This function designes for generating train/val/test negative  
     def generateTrainNegative(self):
+        """
+        generateTrainNegative
+        生成负面样本
+        :return:
+        """
         num_items = self.conf.num_items
         num_negatives = self.conf.num_negatives
         negative_data = defaultdict(set)
