@@ -207,103 +207,15 @@ class diffnetplus():
                                                    self.conf.num_users]).astype(np.int64)  # [38342, 17237]
 
         ########  二、Rough Graph Attention initialization ######## # 粗糙图attention初始化
+        """
+        delete all
+        """
         # ----------------------
         # 1. User part
-        # First Layer Influence:
-        self.first_layer_user_attention_ini = tf.Variable(
-            tf.random_normal(shape=[1, 2], stddev=0.01),
-            name="first_layer_user_part_influence_attention"
-        )
-
-        first_layer_user_attention_norm_denominator = tf.reduce_sum(  # 第一层用户注意力范数分母
-            tf.math.exp(self.first_layer_user_attention_ini), 1
-        )
-        self.first_layer_user_attention = tf.div(
-            tf.math.exp(self.first_layer_user_attention_ini),
-            first_layer_user_attention_norm_denominator
-        )
-        self.first_user_userneighbor_attention_value = tf.slice(self.first_layer_user_attention, [0, 0], [1, 1])
-        self.first_user_itemneighbor_attention_value = tf.slice(self.first_layer_user_attention, [0, 1], [1, 1])
-
-        # Second Layer Influence:
-        self.second_layer_user_attention_ini = tf.Variable(
-            tf.random_normal([1, 2], stddev=0.01),
-            name="second_layer_user_part_influence_attention"
-        )
-        second_layer_user_attention_norm_denominator = tf.reduce_sum(
-            tf.math.exp(self.second_layer_user_attention_ini), 1
-        )
-        second_layer_user_attention = tf.div(
-            tf.math.exp(self.second_layer_user_attention_ini),
-            second_layer_user_attention_norm_denominator
-        )
-        self.second_user_userneighbor_attention_value = tf.slice(second_layer_user_attention, [0, 0], [1, 1])
-        self.second_user_itemneighbor_attention_value = tf.slice(second_layer_user_attention, [0, 1], [1, 1])
-
-        # Third Layer Influence:
-        self.third_layer_user_attention_ini = tf.Variable(
-            tf.random_normal([1, 2], stddev=0.01),
-            name="third_layer_user_part_influence_attention"
-        )
-        third_layer_user_attention_norm_denominator = tf.reduce_sum(
-            tf.math.exp(self.third_layer_user_attention_ini), 1
-        )
-        third_layer_user_attention = tf.div(
-            tf.math.exp(self.third_layer_user_attention_ini),
-            third_layer_user_attention_norm_denominator
-        )
-        self.third_user_userneighbor_attention_value = tf.slice(third_layer_user_attention, [0, 0], [1, 1])
-        self.third_user_itemneighbor_attention_value = tf.slice(third_layer_user_attention, [0, 1], [1, 1])
 
         # ----------------------
         # 2. Item part
-        # First Layer Influence:
-        self.first_layer_item_attention_ini = tf.Variable(
-            tf.random_normal([1, 2], stddev=0.01),
-            name="first_layer_item_part_influence_attention"
-        )
-        first_layer_item_attention_norm_denominator = tf.reduce_sum(
-            tf.math.exp(self.first_layer_item_attention_ini), 1
-        )
-        self.first_layer_item_attention = tf.div(
-            tf.math.exp(self.first_layer_item_attention_ini),
-            first_layer_item_attention_norm_denominator
-        )
 
-        self.first_item_itself_attention_value = tf.slice(self.first_layer_item_attention, [0, 0], [1, 1])
-        self.first_item_userneighbor_attention_value = tf.slice(self.first_layer_item_attention, [0, 1], [1, 1])
-
-        # Second Layer Influence:
-        self.second_layer_item_attention_ini = tf.Variable(
-            tf.random_normal([1, 2], stddev=0.01),
-            name="second_layer_item_part_influence_attention"
-        )
-        second_layer_item_attention_norm_denominator = tf.reduce_sum(
-            tf.math.exp(self.second_layer_item_attention_ini), 1
-        )
-        second_layer_item_attention = tf.div(
-            tf.math.exp(self.second_layer_item_attention_ini),
-            second_layer_item_attention_norm_denominator
-        )
-
-        self.second_item_itself_attention_value = tf.slice(second_layer_item_attention, [0, 0], [1, 1])
-        self.second_item_userneighbor_attention_value = tf.slice(second_layer_item_attention, [0, 1], [1, 1])
-
-        # Third Layer Influence:
-        self.third_layer_item_attention_ini = tf.Variable(
-            tf.random_normal([1, 2], stddev=0.01),
-            name="third_layer_item_part_influence_attention"
-        )
-        third_layer_item_attention_norm_denominator = tf.reduce_sum(
-            tf.math.exp(self.third_layer_item_attention_ini), 1
-        )
-        third_layer_item_attention = tf.div(
-            tf.math.exp(self.third_layer_item_attention_ini),
-            third_layer_item_attention_norm_denominator
-        )
-
-        self.third_item_itself_attention_value = tf.slice(third_layer_item_attention, [0, 0], [1, 1])
-        self.third_item_userneighbor_attention_value = tf.slice(third_layer_item_attention, [0, 1], [1, 1])
 
         ######## 三、Generate Sparse Matrices with/without attention # with/without 生成稀疏矩阵 #########
         # ----------------------
