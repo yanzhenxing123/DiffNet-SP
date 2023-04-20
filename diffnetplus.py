@@ -370,6 +370,7 @@ class diffnetplus():
         self.user_input = tf.placeholder("int32", [None, 1])  # user_list: [0...0, 2, 2, 3, 3]
         self.labels_input = tf.placeholder("float32", [None, 1])  # labels_list: [0 or 1]
 
+        ######## 1. 嵌入层 ########
         self.user_embedding = tf.Variable(
             tf.random_normal([self.conf.num_users, self.conf.dimension], stddev=0.01),
             name='user_embedding'
@@ -495,7 +496,7 @@ class diffnetplus():
         创建训练图 ★
         :return:
         """
-        ########  Fusion Layer # 融合层 相加操作 ########
+        ######## 2. Fusion Layer # 融合层 相加操作 ########
 
         # 转换分布 -> 降维 -> 转换分布
 
@@ -520,7 +521,7 @@ class diffnetplus():
         self.fusion_item_embedding = self.item_embedding + second_item_review_vector_matrix
         self.fusion_user_embedding = self.user_embedding + second_user_review_vector_matrix
 
-        ######## Influence and Interest Diffusion Layer 影响力和兴趣扩散层 相乘操作 ########
+        ######## 3. Influence and Interest Diffusion Layer 影响力和兴趣扩散层 相乘操作 ########
 
         # ----------------------
         # First Layer
@@ -656,7 +657,7 @@ class diffnetplus():
                                         first_gcn_user_embedding  # (17237, 64)
                                     )  # shape=(38342, 64)
 
-        ######## Prediction Layer # 预测层 ########
+        ######## 4. Prediction Layer # 预测层 ########
 
         self.final_user_embedding = tf.concat([
             first_gcn_user_embedding,  # shape=(17237, 64) 第一层卷积
