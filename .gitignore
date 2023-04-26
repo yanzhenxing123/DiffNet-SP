@@ -141,5 +141,3 @@ __pycache__
 *.pyc
 
 test.py
-
-log/
