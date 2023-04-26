@@ -6,6 +6,7 @@ from ParserConf import ParserConf
 from DataUtil import DataUtil
 from Evaluate import Evaluate
 from diffnetplus import diffnetplus
+from mgnn import MGNN
 
 def executeTrainModel(config_path, model_name):
     print(config_path)

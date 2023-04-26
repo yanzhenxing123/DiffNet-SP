@@ -298,22 +298,22 @@ class MGNN():
         """
 
         item_influence_embedding = tf.sparse_tensor_dense_matmul(
-            tf.sparse_tensor_dense_matmul(
-                self.user_item_attention_matrix, self.item_user_attention_matrix
-            ), current_user_embedding
-        )
+            self.user_item_attention_matrix, tf.sparse_tensor_dense_matmul(
+                self.item_user_attention_matrix, current_user_embedding
+            )
+        )  #
         return item_influence_embedding
 
-    def get_social_item_embedding(self, current_user_embedding):
+    def get_social_item_embedding(self, current_item_embedding):
         """
         1.2 从 user-user x user-item 生成 user-embedding
-        :param current_user_embedding:
+        :param current_item_embedding:
         :return:
         """
         social_item_embedding = tf.sparse_tensor_dense_matmul(
-            tf.sparse_tensor_dense_matmul(
-                self.user_user_attention_matrix, self.user_item_attention_matrix
-            ), current_user_embedding
+            self.user_user_attention_matrix, tf.sparse_tensor_dense_matmul(
+                self.user_item_attention_matrix, current_item_embedding
+            )
         )
         return social_item_embedding
 
@@ -535,7 +535,6 @@ class MGNN():
             name='reduce_dimension_layer'
         )
 
-
     def get_user_and_item_embedding(self):
         # 转换分布 -> 降维 -> 转换分布
         first_user_review_vector_matrix = self.convertDistribution(self.user_review_vector_matrix)  # shape=(17237, 150)
@@ -571,33 +570,58 @@ class MGNN():
 
         # 1. 空间层
         self.item_influence_embedding = self.get_item_influence_embedding(self.current_user_embedding)
-        self.social_item_embedding = self.get_social_item_embedding(self.current_user_embedding)
+        self.social_item_embedding = self.get_social_item_embedding(self.current_item_embedding)
         self.consumption_preference_embedding = self.get_consumption_preference_embedding(
             self.item_influence_embedding, self.social_item_embedding
+        )  # 128
+
+        self.layer1_1 = tf.layers.Dense(  # 降维层 -> 64
+            units=self.conf.dimension,  # 64
+            activation=tf.nn.sigmoid,
+            name='reduce_dimension_layer'
         )
 
+        self.consumption_preference_embedding = self.layer1_1(self.consumption_preference_embedding)  # 64
 
         # 2. 光谱层 GCN
-        self.social_preference_embedding = self.get_social_preference_embedding(self.current_user_embedding)
+        self.social_preference_embedding = self.get_social_preference_embedding(self.current_user_embedding)  # 64
 
         # 3. 互惠层
-        self.prefenrence_embedding = self.get_preference_embedding(self.consumption_preference_embedding,
-                                                                   self.current_user_embedding)
-        self.social_embedding = self.get_social_embedding(self.social_preference_embedding, self.current_user_embedding)
-        self.get_mutual_embedding = self.get_mutual_embedding(self.prefenrence_embedding, self.social_embedding)
-        self.mutual_preference_embedding = self.get_mutual_preference_embedding(self.prefenrence_embedding,
-                                                                                self.get_mutual_embedding)
-        self.mutual_social_embedding = self.get_mutual_social_embedding(self.get_mutual_embedding,
-                                                                        self.get_mutual_embedding)
+        self.prefenrence_embedding = self.get_preference_embedding(
+            self.consumption_preference_embedding, self.current_user_embedding
+        )  # concat 128
+        self.social_embedding = self.get_social_embedding(
+            self.social_preference_embedding, self.current_user_embedding
+        )  # concat 128
+
+        self.mutual_embedding = self.get_mutual_embedding(
+            self.prefenrence_embedding, self.social_embedding
+        )  # dot 128
+
+        self.mutual_preference_embedding = self.get_mutual_preference_embedding(
+            self.prefenrence_embedding, self.mutual_embedding
+        )  # concat 256
+        self.mutual_social_embedding = self.get_mutual_social_embedding(
+            self.social_embedding, self.mutual_embedding
+        )  # concat 256
 
         # 4. 预测层
 
+        self.layer4_1 = tf.layers.Dense(
+            units=self.conf.dimension,  # 64
+            activation=tf.nn.sigmoid,
+        )
 
-
+        self.layer4_2 = tf.layers.Dense(
+            units=self.conf.dimension,  # 64
+            activation=tf.nn.sigmoid,
+        )
+        self.mutual_preference_embedding = self.layer4_1(self.mutual_preference_embedding)
+        self.current_item_embedding = self.layer4_2(self.current_item_embedding)
 
         latest_user_latent = tf.gather_nd(
-            self.final_user_embedding, self.user_input
-        )  # shape=(?, 256) user_input'shape=(?, 1)
+            self.mutual_preference_embedding, self.user_input
+        )  # shape=(?, 64) user_input'shape=(?, 1)
         latest_item_latent = tf.gather_nd(
             self.current_item_embedding, self.item_input
         )  # shape=(?, 64) item_input'shape=(?, 1)
