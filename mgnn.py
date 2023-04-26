@@ -239,6 +239,38 @@ class MGNN():
             self.second_layer_item_customer_sparse_matrix
         )
 
+        # MGNN
+        # (1) user-user
+        self.user_user_sparse_matrix = tf.SparseTensor(
+            indices=self.social_neighbors_indices_input,  # [(user_id1, user_id2)]，二者为朋友 shape=(259014, 2)
+            values=self.social_neighbors_values_input1,  # shape=(259014,) 得到一维的向量
+            dense_shape=self.social_neighbors_dense_shape  # [17237, 17237]
+        )
+
+        # (2) user-item
+        self.user_item_sparse_matrix = tf.SparseTensor(
+            indices=self.consumed_items_indices_input,  # [(user_id, item_id)] shape=(185869, 2)
+            values=self.consumed_items_values_input1,  # shape=(185869,) 得到一维的向量
+            dense_shape=self.consumed_items_dense_shape  # [17237, 38342]
+        )
+        # (3) item-user
+        self.item_user_sparse_matrix = tf.SparseTensor(
+            indices=self.item_customer_indices_input,  # [(item_id, user_id)] shape=(185869, 2)
+            values=self.item_customer_values_input1,  # shape=(185869,) 得到一维的向量
+            dense_shape=self.item_customer_dense_shape  # [38342, 17237]
+        )
+
+        # 对第一层稀疏矩阵进行softmax
+        self.user_user_attention_matrix = tf.sparse.softmax(
+            self.user_user_sparse_matrix
+        )
+        self.user_item_attention_matrix = tf.sparse.softmax(
+            self.user_item_sparse_matrix
+        )
+        self.item_user_attention_matrix = tf.sparse.softmax(
+            self.item_user_sparse_matrix
+        )
+
     def convertDistribution(self, x):
         """
         转换分布, 将数据标准化到一个较小的范围内, 所以乘以 0.1
@@ -258,108 +290,113 @@ class MGNN():
     - Customer: item-user
     """
 
-    def generateUserEmbeddingFromSocialNeighbors1(self, current_user_embedding):
+    def get_item_influence_embedding(self, current_user_embedding):
         """
-        1.1 从 user-user 生成 user_embedding
-
-        self.first_social_neighbors_low_level_att_matrix：softmax过后的社交关系稀疏矩阵 {
-            index=[(user_id1, user_id2)]
-            value=reduce_sum() # shape=(259014,) 得到一维的向量
-            shape=(17237, 17237)
-        }
-
-        :param current_user_embedding: 用户原始 embedding # shape = (17237, 64)
-        :return:
-        """
-        user_embedding_from_social_neighbors = tf.sparse_tensor_dense_matmul(
-            self.first_social_neighbors_low_level_att_matrix, current_user_embedding
-        )
-        return user_embedding_from_social_neighbors
-
-    def generateUserEmebddingFromConsumedItems1(self, current_item_embedding):
-        """
-        1.2 从 user-item 生成 user_embedding
-
-        self.first_consumed_items_low_level_att_matrix：softmax 过后的user-item稀疏矩阵 {
-            index=[(user_id, item_id)]
-            value=reduce_sum() # shape=(185869,) 得到一维的向量
-            shape=(17237, 38342)
-        }
-        :param current_item_embedding: 物品原始 embedding shape=(38342, 64)
-        :return:
-        """
-        user_embedding_from_consumed_items = tf.sparse_tensor_dense_matmul(
-            self.first_consumed_items_low_level_att_matrix, current_item_embedding
-        )
-        return user_embedding_from_consumed_items
-
-    def generateItemEmebddingFromCustomer1(self, current_user_embedding):
-        """
-        1.3从 item-user 生成 item_embedding
-
-        self.first_items_users_neighborslow_level_att_matrix：softmax 过后的item-user稀疏矩阵 {
-            index=[(item_id, user_id)]
-            value=reduce_sum() 185869
-            shape=(38342, 17237)
-        }
+        1.1 从 user-item x item-user 生成 user-embedding
         :param current_user_embedding:
         :return:
         """
-        item_embedding_from_customer = tf.sparse_tensor_dense_matmul(
-            self.first_items_users_neighborslow_level_att_matrix, current_user_embedding
+
+        item_influence_embedding = tf.sparse_tensor_dense_matmul(
+            tf.sparse_tensor_dense_matmul(
+                self.user_item_attention_matrix, self.item_user_attention_matrix
+            ), current_user_embedding
         )
-        return item_embedding_from_customer
+        return item_influence_embedding
 
-    def generateUserEmbeddingFromSocialNeighbors2(self, current_user_embedding):
+    def get_social_item_embedding(self, current_user_embedding):
         """
-        2.1 从 user-user 生成 user_embedding
-
-        self.second_social_neighbors_low_level_att_matrix：softmax过后的社交关系稀疏矩阵 {
-            index=[(user_id1, user_id2)]
-            value=reduce_sum() # shape=(259014,) 得到一维的向量
-            shape=(17237, 17237)
-        }
+        1.2 从 user-user x user-item 生成 user-embedding
         :param current_user_embedding:
         :return:
         """
-        user_embedding_from_social_neighbors = tf.sparse_tensor_dense_matmul(
-            self.second_social_neighbors_low_level_att_matrix, current_user_embedding
+        social_item_embedding = tf.sparse_tensor_dense_matmul(
+            tf.sparse_tensor_dense_matmul(
+                self.user_user_attention_matrix, self.user_item_attention_matrix
+            ), current_user_embedding
         )
-        return user_embedding_from_social_neighbors
+        return social_item_embedding
 
-    def generateUserEmebddingFromConsumedItems2(self, current_item_embedding):
+    def get_consumption_preference_embedding(self, item_influence_embedding, social_item_embedding):
         """
-        2.2 从 user-items 生成 user_embedding
-
-        self.second_consumed_items_low_level_att_matrix：softmax 过后的user-item稀疏矩阵 {
-            index=[(user_id, item_id)]
-            value=reduce_sum() # shape=(185869,) 得到一维的向量
-            shape=(17237, 38342)
-        }
-        :param current_item_embedding:
+        1.3 获得 consumption_preference_embedding 用户消费喜好
+        :param item_influence_embedding:
+        :param social_item_embedding:
         :return:
         """
-        user_embedding_from_consumed_items = tf.sparse_tensor_dense_matmul(
-            self.second_consumed_items_low_level_att_matrix, current_item_embedding
+        consumption_preference_embedding = tf.concat(
+            [item_influence_embedding, social_item_embedding], 1
         )
-        return user_embedding_from_consumed_items
+        return consumption_preference_embedding
 
-    def generateItemEmebddingFromCustomer2(self, current_user_embedding):
+    def get_social_preference_embedding(self, current_user_embedding):
         """
-        2.3 从 item-user 生成 item_embedding
-
-        self.second_items_users_neighborslow_level_att_matrix：softmax 过后的item-user稀疏矩阵 {
-            index=[(item_id, user_id)]
-            value=reduce_sum() 185869
-            shape=(38342, 17237)
-        }
-        :param current_item_embedding:
+        2.1 GCN 从 user-user 生成 user_embedding
+        :param current_user_embedding:
         :return:
         """
-        item_embedding_from_customer = tf.sparse_tensor_dense_matmul(
-            self.second_items_users_neighborslow_level_att_matrix, current_user_embedding
+        social_preference_embedding = tf.sparse_tensor_dense_matmul(
+            self.user_user_attention_matrix, current_user_embedding
         )
-        return item_embedding_from_customer
+        return social_preference_embedding
+
+    def get_preference_embedding(self, consumption_preference_embedding, current_user_embedding):
+        """
+        3.1 获取 preference_embedding 作为互惠层的输入
+        :param consumption_preference_embedding:
+        :param current_user_embedding:
+        :return:
+        """
+        preference_embedding = tf.concat(
+            [consumption_preference_embedding, current_user_embedding], 1
+        )
+        return preference_embedding
+
+    def get_social_embedding(self, social_preference_embedding, current_user_embedding):
+        """
+        3.2 获取 social_embedding 作为互惠层的输入
+        :param social_preference_embedding:
+        :param current_user_embedding:
+        :return:
+        """
+        social_embedding = tf.concat(
+            [social_preference_embedding, current_user_embedding], 1
+        )
+        return social_embedding
+
+    def get_mutual_embedding(self, preference_embedding, social_embedding):
+        """
+        3.3 preference_embedding 和 social_embedding 点积(Dot)获得 mutual_embedding
+        :param preference_embedding:
+        :param social_preference_embedding:
+        :return:
+        """
+        mutual_embedding = tf.multiply(preference_embedding, social_embedding)
+        return mutual_embedding
+
+    def get_mutual_preference_embedding(self, preference_embedding, mutual_embedding):
+        """
+        3.4 preference_embedding 和 mutual_embedding concat 获得 mutual_preference_embedding
+        :param preference_embedding:
+        :param mutual_embedding:
+        :return:
+        """
+        mutual_preference_embedding = tf.concat(
+            [preference_embedding, mutual_embedding], 1
+        )
+        return mutual_preference_embedding
+
+    def get_mutual_social_embedding(self, social_embedding, mutual_embedding):
+        """
+        3.5 preference_embedding 和 mutual_embedding concat 获得 mutual_social_embedding
+        :param preference_embedding:
+        :param mutual_embedding:
+        :return:
+        """
+        mutual_social_embedding = tf.concat(
+            [social_embedding, mutual_embedding], 1
+        )
+        return mutual_social_embedding
 
     def initializeNodes(self):
         """
@@ -491,15 +528,16 @@ class MGNN():
             name='secondGCN_IU_customer_MLP_second_layer'
         )
 
-    def constructTrainGraph(self):
-        """
-        创建训练图 ★
-        :return:
-        """
-        ######## 2. Fusion Layer # 融合层 相加操作 ########
+        # MGNN
+        self.reduce_dimension_layer = tf.layers.Dense(  # 降维层 -> 64
+            units=self.conf.dimension,  # 64
+            activation=tf.nn.sigmoid,
+            name='reduce_dimension_layer'
+        )
 
+
+    def get_user_and_item_embedding(self):
         # 转换分布 -> 降维 -> 转换分布
-
         first_user_review_vector_matrix = self.convertDistribution(self.user_review_vector_matrix)  # shape=(17237, 150)
         first_item_review_vector_matrix = self.convertDistribution(self.item_review_vector_matrix)  # shape=(38342, 150)
 
@@ -521,164 +559,48 @@ class MGNN():
         self.fusion_item_embedding = self.item_embedding + second_item_review_vector_matrix
         self.fusion_user_embedding = self.user_embedding + second_user_review_vector_matrix
 
-        ######## 3. Influence and Interest Diffusion Layer 影响力和兴趣扩散层 相乘操作 ########
+        return self.fusion_user_embedding, self.fusion_item_embedding
 
-        # ----------------------
-        # First Layer
-        user_embedding_from_consumed_items = self.generateUserEmebddingFromConsumedItems1(
-            self.fusion_item_embedding
-        )  # shape=(17237, 64)
-        user_embedding_from_social_neighbors = self.generateUserEmbeddingFromSocialNeighbors1(
-            self.fusion_user_embedding
-        )  # shape=(17237, 64)
+    def constructTrainGraph(self):
+        """
+        创建训练图 ★
+        :return:
+        """
 
-        # user attention
-        consumed_items_attention = tf.math.exp(
-            self.first_user_part_interest_graph_att_layer2(  # leaky_relu
-                self.first_user_part_interest_graph_att_layer1(  # tanh 128 -> 1
-                    tf.concat(
-                        [self.fusion_user_embedding, user_embedding_from_consumed_items], 1
-                    )  # shape=(17237, 128)
-                )
-            )
-        ) + 0.7  # shape=(17237, 1)
+        self.current_user_embedding, self.current_item_embedding = self.get_user_and_item_embedding()
 
-        social_neighbors_attention = tf.math.exp(
-            self.first_user_part_social_graph_att_layer2(  # leaky_relu
-                self.first_user_part_social_graph_att_layer1(  # tanh 128 -> 1
-                    tf.concat(
-                        [self.fusion_user_embedding, user_embedding_from_social_neighbors], 1
-                    )  # shape=(17237, 128)
-                )
-            )
-        ) + 0.3  # shape=(17237, 1)
+        # 1. 空间层
+        self.item_influence_embedding = self.get_item_influence_embedding(self.current_user_embedding)
+        self.social_item_embedding = self.get_social_item_embedding(self.current_user_embedding)
+        self.consumption_preference_embedding = self.get_consumption_preference_embedding(
+            self.item_influence_embedding, self.social_item_embedding
+        )
 
-        # self.consumed_items_attention_1 和 self.social_neighbors_attention_1 相当于一个权重
-        sum_attention = consumed_items_attention + social_neighbors_attention  # shape=(17237, 1)
-        self.consumed_items_attention_1 = consumed_items_attention / sum_attention  # shape=(17237, 1)
-        self.social_neighbors_attention_1 = social_neighbors_attention / sum_attention  # shape=(17237, 1)
 
-        first_gcn_user_embedding = 1 / 2 * self.fusion_user_embedding + 1 / 2 * (
-                self.consumed_items_attention_1 * user_embedding_from_consumed_items +
-                self.social_neighbors_attention_1 * user_embedding_from_social_neighbors
-        )  # shape=(17237, 64)
+        # 2. 光谱层 GCN
+        self.social_preference_embedding = self.get_social_preference_embedding(self.current_user_embedding)
 
-        # item attention
-        item_itself_att = tf.math.exp(
-            self.first_item_part_itself_graph_att_layer2(  # leaky_relu
-                self.first_item_part_itself_graph_att_layer1(  # tanh 64 -> 1
-                    self.fusion_item_embedding  # shape=(38342, 64)
-                )
-            )
-        ) + 1.0  # shape=(38342, 1)
+        # 3. 互惠层
+        self.prefenrence_embedding = self.get_preference_embedding(self.consumption_preference_embedding,
+                                                                   self.current_user_embedding)
+        self.social_embedding = self.get_social_embedding(self.social_preference_embedding, self.current_user_embedding)
+        self.get_mutual_embedding = self.get_mutual_embedding(self.prefenrence_embedding, self.social_embedding)
+        self.mutual_preference_embedding = self.get_mutual_preference_embedding(self.prefenrence_embedding,
+                                                                                self.get_mutual_embedding)
+        self.mutual_social_embedding = self.get_mutual_social_embedding(self.get_mutual_embedding,
+                                                                        self.get_mutual_embedding)
 
-        item_customer_attenton = tf.math.exp(
-            self.first_item_part_user_graph_att_layer2(  # leaky_relu
-                self.first_item_part_user_graph_att_layer1(  # tanh
-                    self.generateItemEmebddingFromCustomer1(  # shape=(38342, 64)
-                        self.fusion_user_embedding  # shape=(17237, 64)
-                    )
-                )
-            )
-        ) + 1.0  # shape=(38342, 1)
+        # 4. 预测层
 
-        item_sum_attention = item_itself_att + item_customer_attenton  # shape=(38342, 1)
 
-        # self.item_itself_att1 和 self.item_customer_attenton1 相当于一个权重
-        self.item_itself_att1 = item_itself_att / item_sum_attention  # shape=(38342, 1)
-        self.item_customer_attenton1 = item_customer_attenton / item_sum_attention  # shape=(38342, 1)
 
-        first_gcn_item_embedding = self.item_itself_att1 * self.fusion_item_embedding + self.item_customer_attenton1 * \
-                                   self.generateItemEmebddingFromCustomer1(
-                                       self.fusion_user_embedding
-                                   )  # shape=(38342, 64)
-
-        # ----------------------
-        # Second Layer
-        user_embedding_from_consumed_items = self.generateUserEmebddingFromConsumedItems2(
-            first_gcn_item_embedding
-        )  # shape=(17237, 64)
-
-        user_embedding_from_social_neighbors = self.generateUserEmbeddingFromSocialNeighbors2(
-            first_gcn_user_embedding
-        )  # shape=(17237, 64)
-
-        consumed_items_attention = tf.math.exp(
-            self.second_user_part_interest_graph_att_layer2(  # leaky_relu
-                self.second_user_part_interest_graph_att_layer1(  # tanh 128 -> 1
-                    tf.concat([first_gcn_user_embedding, user_embedding_from_consumed_items], 1)
-                )
-            )
-        ) + 0.7  # shape=(17237, 1)
-
-        social_neighbors_attention = tf.math.exp(
-            self.second_user_part_social_graph_att_layer2(  # leaky_relu
-                self.second_user_part_social_graph_att_layer1(  # tanh 128 -> 1
-                    tf.concat([first_gcn_user_embedding, user_embedding_from_social_neighbors], 1)
-                )
-            )
-        ) + 0.3  # shape=(17237, 1)
-
-        # self.consumed_items_attention_2 和 self.social_neighbors_attention_2 相当于一个权重
-        sum_attention = consumed_items_attention + social_neighbors_attention  # shape=(17237, 1)
-        self.consumed_items_attention_2 = consumed_items_attention / sum_attention  # shape=(17237, 1)
-        self.social_neighbors_attention_2 = social_neighbors_attention / sum_attention  # shape=(17237, 1)
-
-        second_gcn_user_embedding = 1 / 2 * first_gcn_user_embedding + 1 / 2 * (
-                self.consumed_items_attention_2 * user_embedding_from_consumed_items
-                + self.social_neighbors_attention_2 * user_embedding_from_social_neighbors
-        )  # shape=(17237, 64)
-
-        item_itself_att = tf.math.exp(
-            self.second_item_part_itself_graph_att_layer2(  # leaky_relu
-                self.second_item_part_itself_graph_att_layer1(  # tanh 64 -> 1
-                    first_gcn_item_embedding  # shape=(38342, 64)
-                )
-            )
-        ) + 1.0  # shape=(38342, 1)
-
-        item_customer_attenton = tf.math.exp(
-            self.second_item_part_user_graph_att_layer2(  # leaky_relu
-                self.second_item_part_user_graph_att_layer1(  # tanh 64 -> 1
-                    self.generateItemEmebddingFromCustomer2(
-                        first_gcn_user_embedding  # shape=(17237, 64)
-                    )
-                )
-            )
-        ) + 1.0  # shape=(38342, 1)
-
-        # self.item_itself_att2 和 self.item_customer_attenton2 相当于一个权重
-        item_sum_attention = item_itself_att + item_customer_attenton  # shape=(38342, 1)
-        self.item_itself_att2 = item_itself_att / item_sum_attention  # shape=(38342, 1)
-        self.item_customer_attenton2 = item_customer_attenton / item_sum_attention  # shape=(38342, 1)
-
-        second_gcn_item_embedding = self.item_itself_att2 * first_gcn_item_embedding + self.item_customer_attenton2 * \
-                                    self.generateItemEmebddingFromCustomer2(
-                                        first_gcn_user_embedding  # (17237, 64)
-                                    )  # shape=(38342, 64)
-
-        ######## 4. Prediction Layer # 预测层 ########
-
-        self.final_user_embedding = tf.concat([
-            first_gcn_user_embedding,  # shape=(17237, 64) 第一层卷积
-            second_gcn_user_embedding,  # shape=(17237, 64) 第二层卷积
-            self.user_embedding,  # shape=(17237, 64) 正态分布随即变量
-            second_user_review_vector_matrix  # shape=(17237, 64) npy中都出来后处理的
-        ], 1)  # shape=(17237, 256)
-
-        self.final_item_embedding = tf.concat([
-            first_gcn_item_embedding,  # shape=(38342, 64) 第一层卷积
-            second_gcn_item_embedding,  # shape=(38342, 64) 第二层卷积
-            self.item_embedding,  # shape=(38342, 64) 正态分布随即变量
-            second_item_review_vector_matrix  # shape=(38342, 64) npy中都出来后处理的
-        ], 1)  # shape=(38342, 256)
 
         latest_user_latent = tf.gather_nd(
             self.final_user_embedding, self.user_input
         )  # shape=(?, 256) user_input'shape=(?, 1)
         latest_item_latent = tf.gather_nd(
-            self.final_item_embedding, self.item_input
-        )  # shape=(?, 256) item_input'shape=(?, 1)
+            self.current_item_embedding, self.item_input
+        )  # shape=(?, 64) item_input'shape=(?, 1)
 
         self.predict_vector = tf.multiply(latest_user_latent, latest_item_latent)  # shape=(?, 256)
         self.prediction = tf.sigmoid(tf.reduce_sum(self.predict_vector, 1, keepdims=True))  # shape=(?, 1)
