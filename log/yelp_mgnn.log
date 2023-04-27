@@ -1,0 +1,31 @@
+Following will output the evaluation of the model:
+Epoch:1, compute loss cost:51.2933s, train loss:4899.5679, val loss:1651.9268, test loss:8739.7061
+Evaluate cost:18.4574s 
+ Top5: hr:0.0008, ndcg:0.0006 
+ Top10: hr:0.0008, ndcg:0.0006 
+ Top15: hr:0.0008, ndcg:0.0006
+Epoch:2, compute loss cost:34.7143s, train loss:2532.3853, val loss:1524.3234, test loss:8077.7739
+Evaluate cost:16.5705s 
+ Top5: hr:0.0342, ndcg:0.0218 
+ Top10: hr:0.0624, ndcg:0.0318 
+ Top15: hr:0.0866, ndcg:0.0391
+Epoch:3, compute loss cost:36.7947s, train loss:2267.2749, val loss:1423.3451, test loss:7529.1206
+Evaluate cost:16.6044s 
+ Top5: hr:0.0636, ndcg:0.0442 
+ Top10: hr:0.1029, ndcg:0.0582 
+ Top15: hr:0.1364, ndcg:0.0681
+Epoch:4, compute loss cost:35.2386s, train loss:2136.5840, val loss:1395.8365, test loss:7359.8691
+Evaluate cost:16.7585s 
+ Top5: hr:0.0692, ndcg:0.0490 
+ Top10: hr:0.1106, ndcg:0.0638 
+ Top15: hr:0.1446, ndcg:0.0740
+Epoch:5, compute loss cost:34.3975s, train loss:2105.8528, val loss:1396.9819, test loss:7348.3301
+Evaluate cost:16.2010s 
+ Top5: hr:0.0704, ndcg:0.0500 
+ Top10: hr:0.1108, ndcg:0.0643 
+ Top15: hr:0.1449, ndcg:0.0745
+Epoch:6, compute loss cost:36.2903s, train loss:2098.4717, val loss:1396.5665, test loss:7344.7227
+Evaluate cost:16.7592s 
+ Top5: hr:0.0693, ndcg:0.0495 
+ Top10: hr:0.1115, ndcg:0.0646 
+ Top15: hr:0.1459, ndcg:0.0749

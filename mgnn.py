@@ -296,12 +296,23 @@ class MGNN():
         :param current_user_embedding:
         :return:
         """
-
-        item_influence_embedding = tf.sparse_tensor_dense_matmul(
-            self.user_item_attention_matrix, tf.sparse_tensor_dense_matmul(
-                self.item_user_attention_matrix, current_user_embedding
+        self.layer1_1 = tf.layers.Dense(
+            units=self.conf.dimension,  # 64
+            activation=tf.nn.leaky_relu,
+        )
+        self.layer1_2 = tf.layers.Dense(
+            units=self.conf.dimension,  # 64
+            activation=tf.nn.leaky_relu,
+        )
+        item_influence_embedding = self.layer1_2(
+            tf.sparse_tensor_dense_matmul(
+                self.user_item_attention_matrix, self.layer1_1(
+                    tf.sparse_tensor_dense_matmul(
+                        self.item_user_attention_matrix, current_user_embedding
+                    )
+                )
             )
-        )  #
+        )
         return item_influence_embedding
 
     def get_social_item_embedding(self, current_item_embedding):
@@ -310,11 +321,25 @@ class MGNN():
         :param current_item_embedding:
         :return:
         """
-        social_item_embedding = tf.sparse_tensor_dense_matmul(
-            self.user_user_attention_matrix, tf.sparse_tensor_dense_matmul(
-                self.user_item_attention_matrix, current_item_embedding
+
+        self.layer1_3 = tf.layers.Dense(
+            units=self.conf.dimension,  # 64
+            activation=tf.nn.leaky_relu,
+        )
+        self.layer1_4 = tf.layers.Dense(
+            units=self.conf.dimension,  # 64
+            activation=tf.nn.leaky_relu,
+        )
+        social_item_embedding = self.layer1_4(
+            tf.sparse_tensor_dense_matmul(
+                self.user_user_attention_matrix, self.layer1_3(
+                    tf.sparse_tensor_dense_matmul(
+                        self.user_item_attention_matrix, current_item_embedding
+                    )
+                )
             )
         )
+
         return social_item_embedding
 
     def get_consumption_preference_embedding(self, item_influence_embedding, social_item_embedding):
@@ -324,8 +349,16 @@ class MGNN():
         :param social_item_embedding:
         :return:
         """
-        consumption_preference_embedding = tf.concat(
-            [item_influence_embedding, social_item_embedding], 1
+        self.layer1_5 = tf.layers.Dense(
+            units=self.conf.dimension,  # 128 -> 64
+            activation=tf.nn.leaky_relu,
+            name='reduce_dimension_layer'
+        )
+
+        consumption_preference_embedding = self.layer1_5(
+            tf.concat(
+                [item_influence_embedding, social_item_embedding], 1
+            )
         )
         return consumption_preference_embedding
 
@@ -335,8 +368,16 @@ class MGNN():
         :param current_user_embedding:
         :return:
         """
-        social_preference_embedding = tf.sparse_tensor_dense_matmul(
-            self.user_user_attention_matrix, current_user_embedding
+
+        self.layer2_1 = tf.layers.Dense(
+            units=self.conf.dimension,
+            activation=tf.nn.leaky_relu,
+        )
+
+        social_preference_embedding = self.layer2_1(
+            tf.sparse_tensor_dense_matmul(
+                self.user_user_attention_matrix, current_user_embedding
+            )
         )
         return social_preference_embedding
 
@@ -347,8 +388,15 @@ class MGNN():
         :param current_user_embedding:
         :return:
         """
-        preference_embedding = tf.concat(
-            [consumption_preference_embedding, current_user_embedding], 1
+
+        self.layer3_1 = tf.layers.Dense(
+            units=self.conf.dimension * 2,  # 128
+            activation=tf.nn.leaky_relu,
+        )
+        preference_embedding = self.layer3_1(
+            tf.concat(
+                [consumption_preference_embedding, current_user_embedding], 1
+            )
         )
         return preference_embedding
 
@@ -359,8 +407,15 @@ class MGNN():
         :param current_user_embedding:
         :return:
         """
-        social_embedding = tf.concat(
-            [social_preference_embedding, current_user_embedding], 1
+
+        self.layer3_2 = tf.layers.Dense(
+            units=self.conf.dimension * 2,  # 128
+            activation=tf.nn.leaky_relu,
+        )
+        social_embedding = self.layer3_2(
+            tf.concat(
+                [social_preference_embedding, current_user_embedding], 1
+            )
         )
         return social_embedding
 
@@ -371,7 +426,8 @@ class MGNN():
         :param social_preference_embedding:
         :return:
         """
-        mutual_embedding = tf.multiply(preference_embedding, social_embedding)
+
+        mutual_embedding = tf.multiply(preference_embedding, social_embedding)  # 128
         return mutual_embedding
 
     def get_mutual_preference_embedding(self, preference_embedding, mutual_embedding):
@@ -381,8 +437,14 @@ class MGNN():
         :param mutual_embedding:
         :return:
         """
-        mutual_preference_embedding = tf.concat(
-            [preference_embedding, mutual_embedding], 1
+        self.layer3_3 = tf.layers.Dense(
+            units=self.conf.dimension,  # 64
+            activation=tf.nn.leaky_relu,
+        )
+        mutual_preference_embedding = self.layer3_3(
+            tf.concat(
+                [preference_embedding, mutual_embedding], 1
+            )  # 192
         )
         return mutual_preference_embedding
 
@@ -393,8 +455,14 @@ class MGNN():
         :param mutual_embedding:
         :return:
         """
-        mutual_social_embedding = tf.concat(
-            [social_embedding, mutual_embedding], 1
+        self.layer3_4 = tf.layers.Dense(
+            units=self.conf.dimension,  # 64
+            activation=tf.nn.leaky_relu,
+        )
+        mutual_social_embedding = self.layer3_4(
+            tf.concat(
+                [social_embedding, mutual_embedding], 1
+            )  # 192
         )
         return mutual_social_embedding
 
@@ -536,6 +604,10 @@ class MGNN():
         )
 
     def get_user_and_item_embedding(self):
+        """
+        融合层，先拿到 user_embedding 和 item_embedding
+        :return:
+        """
         # 转换分布 -> 降维 -> 转换分布
         first_user_review_vector_matrix = self.convertDistribution(self.user_review_vector_matrix)  # shape=(17237, 150)
         first_item_review_vector_matrix = self.convertDistribution(self.item_review_vector_matrix)  # shape=(38342, 150)
@@ -555,8 +627,8 @@ class MGNN():
         )  # 转换分布 shape=(38342, 64)
 
         # 加法融合 item_embedding 和 user_embedding 都是正态分布的随机数
-        self.fusion_item_embedding = self.item_embedding + second_item_review_vector_matrix
-        self.fusion_user_embedding = self.user_embedding + second_user_review_vector_matrix
+        self.fusion_user_embedding = self.user_embedding + second_user_review_vector_matrix  # shape=(17237, 64)
+        self.fusion_item_embedding = self.item_embedding + second_item_review_vector_matrix  # shape=(38342, 64)
 
         return self.fusion_user_embedding, self.fusion_item_embedding
 
@@ -567,24 +639,17 @@ class MGNN():
         """
 
         self.current_user_embedding, self.current_item_embedding = self.get_user_and_item_embedding()
-
-        # 1. 空间层
-        self.item_influence_embedding = self.get_item_influence_embedding(self.current_user_embedding)
-        self.social_item_embedding = self.get_social_item_embedding(self.current_item_embedding)
+        # 1. 空间层 一共5层
+        self.item_influence_embedding = self.get_item_influence_embedding(self.current_user_embedding)  # (17237, 64)
+        self.social_item_embedding = self.get_social_item_embedding(self.current_item_embedding)  # (17237, 64)
         self.consumption_preference_embedding = self.get_consumption_preference_embedding(
             self.item_influence_embedding, self.social_item_embedding
-        )  # 128
-
-        self.layer1_1 = tf.layers.Dense(  # 降维层 -> 64
-            units=self.conf.dimension,  # 64
-            activation=tf.nn.sigmoid,
-            name='reduce_dimension_layer'
-        )
-
-        self.consumption_preference_embedding = self.layer1_1(self.consumption_preference_embedding)  # 64
+        )  # shape=(17237, 64)
 
         # 2. 光谱层 GCN
-        self.social_preference_embedding = self.get_social_preference_embedding(self.current_user_embedding)  # 64
+        self.social_preference_embedding = self.get_social_preference_embedding(
+            self.current_user_embedding
+        )  # (17237, 64)
 
         # 3. 互惠层
         self.prefenrence_embedding = self.get_preference_embedding(
@@ -600,21 +665,21 @@ class MGNN():
 
         self.mutual_preference_embedding = self.get_mutual_preference_embedding(
             self.prefenrence_embedding, self.mutual_embedding
-        )  # concat 256
+        )  # concat 64
         self.mutual_social_embedding = self.get_mutual_social_embedding(
             self.social_embedding, self.mutual_embedding
-        )  # concat 256
+        )  # concat 64
 
         # 4. 预测层
 
         self.layer4_1 = tf.layers.Dense(
             units=self.conf.dimension,  # 64
-            activation=tf.nn.sigmoid,
+            activation=tf.nn.leaky_relu,
         )
 
         self.layer4_2 = tf.layers.Dense(
             units=self.conf.dimension,  # 64
-            activation=tf.nn.sigmoid,
+            activation=tf.nn.leaky_relu,
         )
         self.mutual_preference_embedding = self.layer4_1(self.mutual_preference_embedding)
         self.current_item_embedding = self.layer4_2(self.current_item_embedding)
