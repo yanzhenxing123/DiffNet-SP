@@ -29,3 +29,98 @@ Evaluate cost:16.7592s
  Top5: hr:0.0693, ndcg:0.0495 
  Top10: hr:0.1115, ndcg:0.0646 
  Top15: hr:0.1459, ndcg:0.0749
+Epoch:7, compute loss cost:37.2036s, train loss:2093.1343, val loss:1395.0834, test loss:7334.8364
+Evaluate cost:18.2094s 
+ Top5: hr:0.0701, ndcg:0.0501 
+ Top10: hr:0.1116, ndcg:0.0650 
+ Top15: hr:0.1454, ndcg:0.0751
+Epoch:8, compute loss cost:37.4807s, train loss:2085.5957, val loss:1390.4717, test loss:7299.6860
+Evaluate cost:16.9420s 
+ Top5: hr:0.0739, ndcg:0.0522 
+ Top10: hr:0.1125, ndcg:0.0660 
+ Top15: hr:0.1477, ndcg:0.0765
+Epoch:9, compute loss cost:37.3316s, train loss:2055.3291, val loss:1363.3365, test loss:7144.2002
+Evaluate cost:17.1579s 
+ Top5: hr:0.0794, ndcg:0.0567 
+ Top10: hr:0.1261, ndcg:0.0735 
+ Top15: hr:0.1648, ndcg:0.0850
+Epoch:10, compute loss cost:35.6724s, train loss:1982.6489, val loss:1306.6892, test loss:6844.0737
+Evaluate cost:16.6783s 
+ Top5: hr:0.0933, ndcg:0.0666 
+ Top10: hr:0.1483, ndcg:0.0862 
+ Top15: hr:0.1916, ndcg:0.0992
+Epoch:11, compute loss cost:34.6482s, train loss:1888.0135, val loss:1259.3203, test loss:6593.0972
+Evaluate cost:16.4798s 
+ Top5: hr:0.0949, ndcg:0.0681 
+ Top10: hr:0.1543, ndcg:0.0893 
+ Top15: hr:0.1983, ndcg:0.1024
+Epoch:12, compute loss cost:35.4468s, train loss:1828.7133, val loss:1237.7260, test loss:6487.6084
+Evaluate cost:16.6242s 
+ Top5: hr:0.0974, ndcg:0.0696 
+ Top10: hr:0.1570, ndcg:0.0910 
+ Top15: hr:0.2051, ndcg:0.1053
+Epoch:13, compute loss cost:35.0978s, train loss:1789.5480, val loss:1217.2317, test loss:6385.5820
+Evaluate cost:16.5960s 
+ Top5: hr:0.1033, ndcg:0.0750 
+ Top10: hr:0.1661, ndcg:0.0974 
+ Top15: hr:0.2157, ndcg:0.1124
+Epoch:14, compute loss cost:35.5376s, train loss:1742.0957, val loss:1191.8463, test loss:6243.0234
+Evaluate cost:16.3736s 
+ Top5: hr:0.1168, ndcg:0.0843 
+ Top10: hr:0.1855, ndcg:0.1089 
+ Top15: hr:0.2398, ndcg:0.1252
+Epoch:15, compute loss cost:34.9051s, train loss:1680.4609, val loss:1157.4465, test loss:6069.1650
+Evaluate cost:16.0801s 
+ Top5: hr:0.1306, ndcg:0.0929 
+ Top10: hr:0.2056, ndcg:0.1199 
+ Top15: hr:0.2648, ndcg:0.1376
+Epoch:16, compute loss cost:34.4949s, train loss:1635.5608, val loss:1154.3761, test loss:6056.2627
+Evaluate cost:16.2968s 
+ Top5: hr:0.1350, ndcg:0.0959 
+ Top10: hr:0.2140, ndcg:0.1244 
+ Top15: hr:0.2712, ndcg:0.1416
+Epoch:17, compute loss cost:35.7285s, train loss:1600.8212, val loss:1124.6672, test loss:5885.7021
+Evaluate cost:16.6726s 
+ Top5: hr:0.1377, ndcg:0.1004 
+ Top10: hr:0.2142, ndcg:0.1278 
+ Top15: hr:0.2753, ndcg:0.1462
+Epoch:18, compute loss cost:34.8710s, train loss:1568.4106, val loss:1098.4297, test loss:5762.7080
+Evaluate cost:16.5552s 
+ Top5: hr:0.1410, ndcg:0.1019 
+ Top10: hr:0.2190, ndcg:0.1299 
+ Top15: hr:0.2778, ndcg:0.1476
+Epoch:19, compute loss cost:34.6657s, train loss:1547.7373, val loss:1119.5699, test loss:5878.8228
+Evaluate cost:16.3763s 
+ Top5: hr:0.1383, ndcg:0.0994 
+ Top10: hr:0.2162, ndcg:0.1273 
+ Top15: hr:0.2755, ndcg:0.1451
+Epoch:20, compute loss cost:35.3492s, train loss:1548.8091, val loss:1101.8494, test loss:5766.0312
+Evaluate cost:16.4690s 
+ Top5: hr:0.1380, ndcg:0.1000 
+ Top10: hr:0.2182, ndcg:0.1288 
+ Top15: hr:0.2765, ndcg:0.1463
+Epoch:21, compute loss cost:34.7405s, train loss:1535.8031, val loss:1078.4414, test loss:5640.0674
+Evaluate cost:16.5145s 
+ Top5: hr:0.1447, ndcg:0.1045 
+ Top10: hr:0.2255, ndcg:0.1335 
+ Top15: hr:0.2870, ndcg:0.1520
+Epoch:22, compute loss cost:35.1709s, train loss:1489.4736, val loss:1067.9258, test loss:5579.7354
+Evaluate cost:16.2986s 
+ Top5: hr:0.1451, ndcg:0.1056 
+ Top10: hr:0.2289, ndcg:0.1357 
+ Top15: hr:0.2901, ndcg:0.1540
+Epoch:23, compute loss cost:34.8998s, train loss:1459.8418, val loss:1065.1328, test loss:5588.1406
+Evaluate cost:16.8297s 
+ Top5: hr:0.1473, ndcg:0.1061 
+ Top10: hr:0.2305, ndcg:0.1361 
+ Top15: hr:0.2932, ndcg:0.1549
+Epoch:24, compute loss cost:34.5908s, train loss:1442.6965, val loss:1065.0779, test loss:5579.8657
+Evaluate cost:16.4087s 
+ Top5: hr:0.1490, ndcg:0.1072 
+ Top10: hr:0.2291, ndcg:0.1360 
+ Top15: hr:0.2910, ndcg:0.1547
+Epoch:25, compute loss cost:34.8850s, train loss:1430.7806, val loss:1068.1262, test loss:5608.4429
+Evaluate cost:8066.6792s 
+ Top5: hr:0.1466, ndcg:0.1068 
+ Top10: hr:0.2298, ndcg:0.1366 
+ Top15: hr:0.2958, ndcg:0.1563
