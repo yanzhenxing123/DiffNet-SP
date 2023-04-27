@@ -639,14 +639,14 @@ class MGNN():
         """
 
         self.current_user_embedding, self.current_item_embedding = self.get_user_and_item_embedding()
-        # 1. 空间层 一共5层
+        # 1. 空间层 5层神经网络
         self.item_influence_embedding = self.get_item_influence_embedding(self.current_user_embedding)  # (17237, 64)
         self.social_item_embedding = self.get_social_item_embedding(self.current_item_embedding)  # (17237, 64)
         self.consumption_preference_embedding = self.get_consumption_preference_embedding(
             self.item_influence_embedding, self.social_item_embedding
         )  # shape=(17237, 64)
 
-        # 2. 光谱层 GCN
+        # 2. 光谱层 GCN 一层神经网络
         self.social_preference_embedding = self.get_social_preference_embedding(
             self.current_user_embedding
         )  # (17237, 64)
