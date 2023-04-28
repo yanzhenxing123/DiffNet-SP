@@ -717,17 +717,17 @@ class MGNN():
         self.prediction = tf.sigmoid(tf.reduce_sum(self.predict_vector, 1, keepdims=True))  # shape=(?, 1)
 
         self.predict_social_vector = tf.multiply(latest_user_latent1, latest_user_latent2)  # shape=(?, 64)
-        self.social_prediction = tf.sigmoid(tf.reduce_sum(self.predict_vector, 1, keepdims=True))  # shape=(?, 1)
-
+        self.social_prediction = tf.sigmoid(tf.reduce_sum(self.predict_social_vector, 1, keepdims=True))  # shape=(?, 1)
 
         # ----------------------
         # Optimazation 训练优化器
 
         self.loss = tf.nn.l2_loss(self.labels_input - self.prediction)
-        self.social_loss = tf.nn.l2_loss(self.user_input-self.social_prediction)
+        self.social_loss = tf.nn.l2_loss(self.user_input - self.social_prediction)
 
         self.opt_loss = tf.nn.l2_loss(self.labels_input - self.prediction)
         self.opt = tf.train.AdamOptimizer(self.conf.learning_rate).minimize(self.opt_loss + self.social_loss)
+
         self.init = tf.global_variables_initializer()
 
     def saveVariables(self):

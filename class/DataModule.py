@@ -71,6 +71,9 @@ class DataModule():
         self.data_dict['ITEM_LIST'] = self.item_list
         self.data_dict['LABEL_LIST'] = self.labels_list
 
+    def get_user_list_0_or_1(self):
+        pass
+
     def linkedRankingEvaMap(self):
         self.data_dict['EVA_USER_LIST'] = self.eva_user_list
         self.data_dict['EVA_ITEM_LIST'] = self.eva_item_list
