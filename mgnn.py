@@ -675,14 +675,28 @@ class MGNN():
         self.layer4_1 = tf.layers.Dense(
             units=self.conf.dimension,  # 64
             activation=tf.nn.leaky_relu,
-        )
+        )  # mutual_preference_embedding
 
         self.layer4_2 = tf.layers.Dense(
             units=self.conf.dimension,  # 64
             activation=tf.nn.leaky_relu,
-        )
+        )  # mutual_social_embedding
+
+        self.layer4_3 = tf.layers.Dense(
+            units=self.conf.dimension,  # 64
+            activation=tf.nn.leaky_relu,
+        )  # current_user_embedding
+
+        self.layer4_4 = tf.layers.Dense(
+            units=self.conf.dimension,  # 64
+            activation=tf.nn.leaky_relu,
+        )  # current_item_embedding
+
         self.mutual_preference_embedding = self.layer4_1(self.mutual_preference_embedding)
-        self.current_item_embedding = self.layer4_2(self.current_item_embedding)
+        self.current_item_embedding = self.layer4_4(self.current_item_embedding)
+
+        self.mutual_social_embedding = self.layer4_2(self.mutual_social_embedding)
+        self.current_user_embedding = self.layer4_3(self.current_user_embedding)
 
         latest_user_latent = tf.gather_nd(
             self.mutual_preference_embedding, self.user_input
@@ -691,15 +705,29 @@ class MGNN():
             self.current_item_embedding, self.item_input
         )  # shape=(?, 64) item_input'shape=(?, 1)
 
-        self.predict_vector = tf.multiply(latest_user_latent, latest_item_latent)  # shape=(?, 256)
+        latest_user_latent1 = tf.gather_nd(
+            self.mutual_social_embedding, self.user_input
+        )  # shape=(?, 64) user_input'shape=(?, 1)
+
+        latest_user_latent2 = tf.gather_nd(
+            self.current_user_embedding, self.user_input
+        )  # shape=(?, 64) item_input'shape=(?, 1)
+
+        self.predict_vector = tf.multiply(latest_user_latent, latest_item_latent)  # shape=(?, 64)
         self.prediction = tf.sigmoid(tf.reduce_sum(self.predict_vector, 1, keepdims=True))  # shape=(?, 1)
+
+        self.predict_social_vector = tf.multiply(latest_user_latent1, latest_user_latent2)  # shape=(?, 64)
+        self.social_prediction = tf.sigmoid(tf.reduce_sum(self.predict_vector, 1, keepdims=True))  # shape=(?, 1)
+
 
         # ----------------------
         # Optimazation 训练优化器
 
         self.loss = tf.nn.l2_loss(self.labels_input - self.prediction)
+        self.social_loss = tf.nn.l2_loss(self.user_input-self.social_prediction)
+
         self.opt_loss = tf.nn.l2_loss(self.labels_input - self.prediction)
-        self.opt = tf.train.AdamOptimizer(self.conf.learning_rate).minimize(self.opt_loss)
+        self.opt = tf.train.AdamOptimizer(self.conf.learning_rate).minimize(self.opt_loss + self.social_loss)
         self.init = tf.global_variables_initializer()
 
     def saveVariables(self):
