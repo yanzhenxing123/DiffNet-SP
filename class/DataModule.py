@@ -5,6 +5,14 @@ from time import time
 import random
 import tensorflow as tf
 
+"""
+self.social_neighbors: {user_id0:{user_id1, user_id2}} 类似于 hash_data
+
+
+
+
+"""
+
 
 class DataModule():
     def __init__(self, conf, filename):
@@ -30,7 +38,7 @@ class DataModule():
             self.readSocialNeighbors()
             self.generateSocialNeighborsSparseMatrix()
             data_dict[
-                'SOCIAL_NEIGHBORS_INDICES_INPUT'] = self.social_neighbors_indices_list  # [(user_id1, user_id2)]，二者为朋友
+                'SOCIAL_NEIGHBORS_INDICES_INPUT'] = self.social_neighbors_indices_list  # [(user_id1, user_id2)]，二者为朋友 # 259014个 已排序
             data_dict['SOCIAL_NEIGHBORS_VALUES_INPUT'] = self.social_neighbors_values_list  # [1.0 / len(friends)]
             data_dict['SOCIAL_NEIGHBORS_VALUES_WEIGHT_AVG_INPUT'] = self.social_neighbors_values_weight_avg_list
             data_dict['SOCIAL_NEIGHBORS_NUM_INPUT'] = self.social_neighbor_num_list  # [len(friends)]
@@ -50,12 +58,14 @@ class DataModule():
         self.arrangePositiveData()
         self.arrangePositiveDataForItemUser()
         self.generateTrainNegative()
+        self.generateSocialTrainNegative()
 
     def initializeRankingVT(self):
         self.readData()
         self.arrangePositiveData()
         self.arrangePositiveDataForItemUser()
         self.generateTrainNegative()
+        self.generateSocialTrainNegative()
 
     def initalizeRankingEva(self):
         self.readData()
@@ -71,8 +81,9 @@ class DataModule():
         self.data_dict['ITEM_LIST'] = self.item_list
         self.data_dict['LABEL_LIST'] = self.labels_list
 
-    def get_user_list_0_or_1(self):
-        pass
+        self.data_dict['SOCIAL_USER_LIST'] = self.user_list
+        self.data_dict['SOCIAL_FRIEND_LIST'] = self.item_list
+        self.data_dict['SOCIAL_LABEL_LIST'] = self.labels_list
 
     def linkedRankingEvaMap(self):
         self.data_dict['EVA_USER_LIST'] = self.eva_user_list
@@ -137,7 +148,7 @@ class DataModule():
     def generateTrainNegative(self):
         """
         generateTrainNegative
-        生成负面样本
+        生成user-item负面样本
         :return:
         """
         num_items = self.conf.num_items
@@ -156,37 +167,90 @@ class DataModule():
         self.negative_data = negative_data
         self.terminal_flag = 1
 
+    def generateSocialTrainNegative(self):
+        """
+        generateSocialTrainNegative
+        生成user-user负面样本
+        :return:
+        """
+        num_items = self.conf.num_users
+        num_negatives = self.conf.num_negatives
+        negative_data = defaultdict(set)
+        for (u1, u2) in self.social_neighbors:
+            for _ in range(num_negatives):
+                j = np.random.randint(num_items)
+                while (u1, j) in self.social_neighbors:
+                    j = np.random.randint(num_items)
+                negative_data[u1].add(j)
+        self.social_negative_data = negative_data
+        self.terminal_flag = 1
+
     # ----------------------
     # This function designes for val/test set, compute loss
     def getVTRankingOneBatch(self):
+        """
+        validation and test
+        :return:
+        """
         positive_data = self.positive_data
         negative_data = self.negative_data
         total_user_list = self.total_user_list
+
         user_list = []
         item_list = []
         labels_list = []
+
+        social_user_list = []
+        social_friend_list = []
+        social_labels_list = []
+
         for u in total_user_list:
+            # 1. user-item
             user_list.extend([u] * len(positive_data[u]))
             item_list.extend(positive_data[u])
             labels_list.extend([1] * len(positive_data[u]))
+
             user_list.extend([u] * len(negative_data[u]))
             item_list.extend(negative_data[u])
             labels_list.extend([0] * len(negative_data[u]))
+
+            # 2. user-user
+            social_user_list.extend([u] * len(self.social_neighbors[u]))
+            social_friend_list.extend(list(self.social_neighbors[u]))
+            social_labels_list.extend([1] * len(self.social_neighbors[u]))
+
+            social_user_list.extend([u] * len(self.social_negative_data[u]))
+            item_list.extend(list(self.social_negative_data[u]))
+            labels_list.extend([0] * len(self.social_negative_data[u]))
 
         self.user_list = np.reshape(user_list, [-1, 1])
         self.item_list = np.reshape(item_list, [-1, 1])
         self.labels_list = np.reshape(labels_list, [-1, 1])
 
+        self.social_user_list = np.reshape(social_user_list, [-1, 1])
+        self.social_friend_list = np.reshape(social_friend_list, [-1, 1])
+        self.social_labels_list = np.reshape(social_labels_list, [-1, 1])
+
     # ----------------------
     # This function designes for the training process
     def getTrainRankingBatch(self):
+        """
+        train
+        :return:
+        """
         positive_data = self.positive_data
         negative_data = self.negative_data
         total_user_list = self.total_user_list
         index = self.index
         batch_size = self.conf.training_batch_size
 
-        user_list, item_list, labels_list = [], [], [] # user_list: [0...0, 1, 1, 1]
+        user_list = []  # [0...0, 1, 1, 1, user_id3, user_id3]
+        item_list = []  # [item_id1, item_id2]
+        labels_list = []  # [1,1,1,1]
+
+        social_user_list = []
+        social_friend_list = []
+        social_labels_list = []
 
         if index + batch_size < len(total_user_list):
             target_user_list = total_user_list[index:index + batch_size]
@@ -197,18 +261,35 @@ class DataModule():
             self.terminal_flag = 0
 
         for u in target_user_list:
+            # 1. user-item
             # positive
             user_list.extend([u] * len(positive_data[u]))
             item_list.extend(list(positive_data[u]))
             labels_list.extend([1] * len(positive_data[u]))
+
             # negative
             user_list.extend([u] * len(negative_data[u]))
             item_list.extend(list(negative_data[u]))
             labels_list.extend([0] * len(negative_data[u]))
 
+            # 2. user-user
+            # positive
+            social_user_list.extend([u] * len(self.social_neighbors[u]))
+            social_friend_list.extend(list(self.social_neighbors[u]))
+            social_labels_list.extend([1] * len(self.social_neighbors[u]))
+
+            # negative
+            social_user_list.extend([u] * len(self.social_negative_data[u]))
+            item_list.extend(list(self.social_negative_data[u]))
+            labels_list.extend([0] * len(self.social_negative_data[u]))
+
         self.user_list = np.reshape(user_list, [-1, 1])
         self.item_list = np.reshape(item_list, [-1, 1])
         self.labels_list = np.reshape(labels_list, [-1, 1])
+
+        self.social_user_list = np.reshape(social_user_list, [-1, 1])
+        self.social_friend_list = np.reshape(social_friend_list, [-1, 1])
+        self.social_labels_list = np.reshape(social_labels_list, [-1, 1])
 
     # ----------------------
     # This function is designed for the positive data
@@ -252,7 +333,7 @@ class DataModule():
     def getEvaRankingBatch(self):
         batch_size = self.conf.evaluate_batch_size  # 2560
         num_evaluate = self.conf.num_evaluate  # 1000
-        eva_negative_data = self.eva_negative_data # 负面数据
+        eva_negative_data = self.eva_negative_data  # 负面数据
         total_user_list = self.total_user_list
         index = self.index
         terminal_flag = 1
