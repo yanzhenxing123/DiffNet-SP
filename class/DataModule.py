@@ -35,7 +35,6 @@ class DataModule():
             data_dict['CONSUMED_ITEMS_NUM_DICT_INPUT'] = self.user_item_num_dict
             data_dict['USER_ITEM_SPARSITY_DICT'] = self.user_item_sparsity_dict
         if 'SOCIAL_NEIGHBORS_SPARSE_MATRIX' in model.supply_set:
-            self.readSocialNeighbors()
             self.generateSocialNeighborsSparseMatrix()
             data_dict[
                 'SOCIAL_NEIGHBORS_INDICES_INPUT'] = self.social_neighbors_indices_list  # [(user_id1, user_id2)]，二者为朋友 # 259014个 已排序
@@ -55,6 +54,7 @@ class DataModule():
 
     def initializeRankingTrain(self):
         self.readData()
+        self.readSocialNeighbors()
         self.arrangePositiveData()
         self.arrangePositiveDataForItemUser()
         self.generateTrainNegative()
@@ -62,6 +62,7 @@ class DataModule():
 
     def initializeRankingVT(self):
         self.readData()
+        # self.readSocialNeighbors()
         self.arrangePositiveData()
         self.arrangePositiveDataForItemUser()
         self.generateTrainNegative()
@@ -69,6 +70,7 @@ class DataModule():
 
     def initalizeRankingEva(self):
         self.readData()
+        # self.readSocialNeighbors()
         self.getEvaPositiveBatch()
         self.generateEvaNegative()
 
@@ -81,9 +83,9 @@ class DataModule():
         self.data_dict['ITEM_LIST'] = self.item_list
         self.data_dict['LABEL_LIST'] = self.labels_list
 
-        self.data_dict['SOCIAL_USER_LIST'] = self.user_list
-        self.data_dict['SOCIAL_FRIEND_LIST'] = self.item_list
-        self.data_dict['SOCIAL_LABEL_LIST'] = self.labels_list
+        self.data_dict['SOCIAL_USER_LIST'] = self.social_user_list
+        self.data_dict['SOCIAL_FRIEND_LIST'] = self.social_friend_list
+        self.data_dict['SOCIAL_LABEL_LIST'] = self.social_labels_list
 
     def linkedRankingEvaMap(self):
         self.data_dict['EVA_USER_LIST'] = self.eva_user_list
@@ -101,24 +103,6 @@ class DataModule():
 
         self.total_user_list = list(total_user_list)
         self.hash_data = hash_data
-
-    def arrangePositiveData(self):
-        positive_data = defaultdict(set)
-        user_item_num_dict = defaultdict(set)
-        total_data = set()
-        hash_data = self.hash_data
-        for (u, i) in hash_data:
-            total_data.add((u, i))
-            positive_data[u].add(i)
-
-        user_list = sorted(list(positive_data.keys()))
-
-        for u in range(self.conf.num_users):
-            user_item_num_dict[u] = len(positive_data[u]) + 1
-        self.positive_data = positive_data
-        self.user_item_num_dict = user_item_num_dict
-        self.user_item_num_for_sparsity_dict = user_item_num_for_sparsity_dict
-        self.total_data = len(total_data)
 
     def Sparsity_analysis_for_user_item_network(self):
         hash_data_for_user_item = self.hash_data
@@ -176,10 +160,10 @@ class DataModule():
         num_items = self.conf.num_users
         num_negatives = self.conf.num_negatives
         negative_data = defaultdict(set)
-        for (u1, u2) in self.social_neighbors:
+        for (u1, u2) in self.social_total_data:
             for _ in range(num_negatives):
                 j = np.random.randint(num_items)
-                while (u1, j) in self.social_neighbors:
+                while (u1, j) in self.social_total_data:
                     j = np.random.randint(num_items)
                 negative_data[u1].add(j)
         self.social_negative_data = negative_data
@@ -359,20 +343,25 @@ class DataModule():
     def readSocialNeighbors(self, friends_flag=1):
         social_neighbors = defaultdict(set)
         social_neighbors_num_dict = defaultdict(set)
+        social_total_data = set()
 
         links_file = open(self.conf.links_filename)
         for _, line in enumerate(links_file):
             tmp = line.split('\t')
             u1, u2 = int(tmp[0]), int(tmp[1])
             social_neighbors[u1].add(u2)
+            social_total_data.add((u1, u2))
             if friends_flag == 1:
                 social_neighbors[u2].add(u1)
+                social_total_data.add((u2, u1))
+
         user_list = sorted(list(social_neighbors.keys()))
         for u in range(self.conf.num_users):
             social_neighbors_num_dict[u] = len(social_neighbors[u]) + 1
 
         self.social_neighbors_num_dict = social_neighbors_num_dict
         self.social_neighbors = social_neighbors
+        self.social_total_data = social_total_data
 
     def arrangePositiveData(self):
         positive_data = defaultdict(set)
