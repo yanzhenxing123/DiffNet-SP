@@ -475,6 +475,13 @@ class MGNN():
         self.user_input = tf.placeholder("int32", [None, 1])  # user_list: [0...0, 2, 2, 3, 3]
         self.labels_input = tf.placeholder("float32", [None, 1])  # labels_list: [0 or 1]
 
+
+        self.social_user_input = tf.placeholder("int32", [None, 1])  # item_list: [item_id, ....]
+        self.social_friend_input = tf.placeholder("int32", [None, 1])  # user_list: [0...0, 2, 2, 3, 3]
+        self.social_labels_input = tf.placeholder("float32", [None, 1])  # labels_list: [0 or 1]
+
+
+
         ######## 1. 嵌入层 ########
         self.user_embedding = tf.Variable(
             tf.random_normal([self.conf.num_users, self.conf.dimension], stddev=0.01),
@@ -706,11 +713,11 @@ class MGNN():
         )  # shape=(?, 64) item_input'shape=(?, 1)
 
         latest_user_latent1 = tf.gather_nd(
-            self.mutual_social_embedding, self.user_input
+            self.mutual_social_embedding, self.social_user_input
         )  # shape=(?, 64) user_input'shape=(?, 1)
 
         latest_user_latent2 = tf.gather_nd(
-            self.current_user_embedding, self.user_input
+            self.current_user_embedding, self.social_friend_input
         )  # shape=(?, 64) item_input'shape=(?, 1)
 
         self.predict_vector = tf.multiply(latest_user_latent, latest_item_latent)  # shape=(?, 64)
@@ -723,11 +730,11 @@ class MGNN():
         # Optimazation 训练优化器
 
         self.loss = tf.nn.l2_loss(self.labels_input - self.prediction)
-        # self.social_loss = tf.nn.l2_loss(self.user_input - self.social_prediction)
+        self.social_loss = tf.nn.l2_loss(self.social_labels_input - self.social_prediction)
 
         self.opt_loss = tf.nn.l2_loss(self.labels_input - self.prediction)
-        # self.opt = tf.train.AdamOptimizer(self.conf.learning_rate).minimize(self.opt_loss + self.social_loss)
-        self.opt = tf.train.AdamOptimizer(self.conf.learning_rate).minimize(self.opt_loss)
+        self.opt = tf.train.AdamOptimizer(self.conf.learning_rate).minimize(self.opt_loss + self.social_loss)
+        # self.opt = tf.train.AdamOptimizer(self.conf.learning_rate).minimize(self.opt_loss)
 
         self.init = tf.global_variables_initializer()
 
@@ -752,19 +759,28 @@ class MGNN():
         map_dict['train'] = {
             self.user_input: 'USER_LIST',
             self.item_input: 'ITEM_LIST',
-            self.labels_input: 'LABEL_LIST'
+            self.labels_input: 'LABEL_LIST',
+            self.social_user_input: 'SOCIAL_USER_LIST',
+            self.social_friend_input: 'SOCIAL_FRIEND_LIST',
+            self.social_labels_input: 'SOCIAL_LABEL_LIST',
         }
 
         map_dict['val'] = {
             self.user_input: 'USER_LIST',
             self.item_input: 'ITEM_LIST',
-            self.labels_input: 'LABEL_LIST'
+            self.labels_input: 'LABEL_LIST',
+            self.social_user_input: 'SOCIAL_USER_LIST',
+            self.social_friend_input: 'SOCIAL_FRIEND_LIST',
+            self.social_labels_input: 'SOCIAL_LABEL_LIST',
         }
 
         map_dict['test'] = {
             self.user_input: 'USER_LIST',
             self.item_input: 'ITEM_LIST',
-            self.labels_input: 'LABEL_LIST'
+            self.labels_input: 'LABEL_LIST',
+            self.social_user_input: 'SOCIAL_USER_LIST',
+            self.social_friend_input: 'SOCIAL_FRIEND_LIST',
+            self.social_labels_input: 'SOCIAL_LABEL_LIST',
         }
 
         map_dict['eva'] = {
