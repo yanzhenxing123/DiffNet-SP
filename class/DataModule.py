@@ -15,7 +15,7 @@ self.social_neighbors: {user_id0:{user_id1, user_id2}} 类似于 hash_data
 
 
 class DataModule():
-    def __init__(self, conf, filename, social_filename=""):
+    def __init__(self, conf, filename, social_filename):
         self.conf = conf
         self.data_dict = {}
         self.terminal_flag = 1
@@ -424,10 +424,10 @@ class DataModule():
                 social_neighbors_indices_list.append([user, friend])
                 social_neighbors_values_list.append(1.0 / len(social_neighbors_dict[user]))
 
-                social_neighbors_values_weight_avg_list.append(
-                    1.0 / (np.sqrt(social_neighbors_num_dict[user]) * np.sqrt(
-                        social_neighbors_num_dict[friend]))
-                )  # weight avg
+                # social_neighbors_values_weight_avg_list.append(
+                #     1.0 / (np.sqrt(social_neighbors_num_dict[user]) * np.sqrt(
+                #         social_neighbors_num_dict[friend]))
+                # )  # weight avg
 
         for u in range(self.conf.num_users):
             cur_user_neighbors_num = user_user_num_for_sparsity_dict[u]
