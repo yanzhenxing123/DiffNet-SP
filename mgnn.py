@@ -723,10 +723,11 @@ class MGNN():
         # Optimazation 训练优化器
 
         self.loss = tf.nn.l2_loss(self.labels_input - self.prediction)
-        self.social_loss = tf.nn.l2_loss(self.user_input - self.social_prediction)
+        # self.social_loss = tf.nn.l2_loss(self.user_input - self.social_prediction)
 
         self.opt_loss = tf.nn.l2_loss(self.labels_input - self.prediction)
-        self.opt = tf.train.AdamOptimizer(self.conf.learning_rate).minimize(self.opt_loss + self.social_loss)
+        # self.opt = tf.train.AdamOptimizer(self.conf.learning_rate).minimize(self.opt_loss + self.social_loss)
+        self.opt = tf.train.AdamOptimizer(self.conf.learning_rate).minimize(self.opt_loss)
 
         self.init = tf.global_variables_initializer()
 

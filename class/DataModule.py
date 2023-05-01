@@ -205,8 +205,8 @@ class DataModule():
             social_labels_list.extend([1] * len(self.social_neighbors[u]))
 
             social_user_list.extend([u] * len(self.social_negative_data[u]))
-            item_list.extend(list(self.social_negative_data[u]))
-            labels_list.extend([0] * len(self.social_negative_data[u]))
+            social_friend_list.extend(list(self.social_negative_data[u]))
+            social_labels_list.extend([0] * len(self.social_negative_data[u]))
 
         self.user_list = np.reshape(user_list, [-1, 1])
         self.item_list = np.reshape(item_list, [-1, 1])
@@ -265,8 +265,8 @@ class DataModule():
 
             # negative
             social_user_list.extend([u] * len(self.social_negative_data[u]))
-            item_list.extend(list(self.social_negative_data[u]))
-            labels_list.extend([0] * len(self.social_negative_data[u]))
+            social_friend_list.extend(list(self.social_negative_data[u]))
+            social_labels_list.extend([0] * len(self.social_negative_data[u]))
 
         self.user_list = np.reshape(user_list, [-1, 1])
         self.item_list = np.reshape(item_list, [-1, 1])
