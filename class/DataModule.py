@@ -105,9 +105,6 @@ class DataModule():
         self.total_user_list = list(total_user_list)
         self.hash_data = hash_data
 
-    def Sparsity_analysis_for_user_item_network(self):
-        hash_data_for_user_item = self.hash_data
-        sparisty_user_item_dict = {}
 
     def arrangePositiveDataForItemUser(self):
         positive_data_for_item_user = defaultdict(set)
