@@ -15,11 +15,12 @@ self.social_neighbors: {user_id0:{user_id1, user_id2}} 类似于 hash_data
 
 
 class DataModule():
-    def __init__(self, conf, filename):
+    def __init__(self, conf, filename, social_filename=""):
         self.conf = conf
         self.data_dict = {}
         self.terminal_flag = 1
         self.filename = filename
+        self.social_filename = social_filename
         self.index = 0
 
     #######  Initalize Procedures #######
@@ -62,7 +63,7 @@ class DataModule():
 
     def initializeRankingVT(self):
         self.readData()
-        # self.readSocialNeighbors()
+        self.readSocialNeighbors()
         self.arrangePositiveData()
         self.arrangePositiveDataForItemUser()
         self.generateTrainNegative()
@@ -70,7 +71,7 @@ class DataModule():
 
     def initalizeRankingEva(self):
         self.readData()
-        # self.readSocialNeighbors()
+        self.readSocialNeighbors()
         self.getEvaPositiveBatch()
         self.generateEvaNegative()
 
@@ -345,7 +346,8 @@ class DataModule():
         social_neighbors_num_dict = defaultdict(set)
         social_total_data = set()
 
-        links_file = open(self.conf.links_filename)
+        # links_file = open(self.conf.links_filename)
+        links_file = open(self.social_filename)
         for _, line in enumerate(links_file):
             tmp = line.split('\t')
             u1, u2 = int(tmp[0]), int(tmp[1])
