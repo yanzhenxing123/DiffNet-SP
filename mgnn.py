@@ -475,12 +475,9 @@ class MGNN():
         self.user_input = tf.placeholder("int32", [None, 1])  # user_list: [0...0, 2, 2, 3, 3]
         self.labels_input = tf.placeholder("float32", [None, 1])  # labels_list: [0 or 1]
 
-
         self.social_user_input = tf.placeholder("int32", [None, 1])  # item_list: [item_id, ....]
         self.social_friend_input = tf.placeholder("int32", [None, 1])  # user_list: [0...0, 2, 2, 3, 3]
         self.social_labels_input = tf.placeholder("float32", [None, 1])  # labels_list: [0 or 1]
-
-
 
         ######## 1. 嵌入层 ########
         self.user_embedding = tf.Variable(

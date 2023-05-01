@@ -105,7 +105,6 @@ class DataModule():
         self.total_user_list = list(total_user_list)
         self.hash_data = hash_data
 
-
     def arrangePositiveDataForItemUser(self):
         positive_data_for_item_user = defaultdict(set)
         item_user_num_dict = defaultdict(set)
