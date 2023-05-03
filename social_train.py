@@ -198,7 +198,7 @@ def start(conf, data, model, evaluate):
 
         def getSocialNegativePredictions():
             """
-            user-item
+            user-user
             负面样本预测
             :return:
             """
@@ -229,7 +229,6 @@ def start(conf, data, model, evaluate):
         # prepare for new batch
         d_test_eva.social_index = 0
 
-        logger.info("*" * 10 + "finish evaluate" + "*" * 10)
 
         social_hr_5, social_ndcg_5 = evaluate.evaluateRankingPerformance(
             evaluate_index_dict=social_index_dict,
@@ -252,6 +251,7 @@ def start(conf, data, model, evaluate):
             topK=conf.top15,
             num_procs=conf.num_procs
         )
+        logger.info("*" * 10 + "finish evaluate" + "*" * 10)
 
         tt4 = time()
 
