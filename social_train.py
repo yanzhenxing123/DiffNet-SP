@@ -262,14 +262,15 @@ def start(conf, data, model, evaluate):
             (epoch, (t2 - t0), train_loss, val_loss, test_loss)
         )
 
-        log.record(
-            '   social train loss:%.4f,social val loss:%.4f,social test loss:%.4f' %
-            (social_train_loss, social_val_loss, social_test_loss)
-        )
 
         log.record(
             'Evaluate cost:%.4fs \n Top5: hr:%.4f, ndcg:%.4f \n Top10: hr:%.4f, ndcg:%.4f \n Top15: hr:%.4f, ndcg:%.4f' %
             ((tt3 - tt2), hr_5, ndcg_5, hr_10, ndcg_10, hr_15, ndcg_15)
+        )
+
+        log.record(
+            'social train loss:%.4f,social val loss:%.4f,social test loss:%.4f' %
+            (social_train_loss, social_val_loss, social_test_loss)
         )
 
         log.record(
