@@ -33,7 +33,7 @@ class DataUtil():
         val_filename = "%s/%s.val.rating" % (data_dir, self.conf.data_name)
         test_filename = "%s/%s.test.rating" % (data_dir, self.conf.data_name)
         social_val_filename = "%s/%s.val.links" % (data_dir, self.conf.data_name)
-        social_test_filename = "%s/%s.test.links" % (data_dir, self.conf.data_name)
+        social_test_filename = "%s/%s.test.links" % (data_dir, self.conf.data_name) # test 做 evaluate
 
         self.val_eva = DataModule(self.conf, val_filename, social_val_filename)
         self.test_eva = DataModule(self.conf, test_filename, social_test_filename)

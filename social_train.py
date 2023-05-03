@@ -184,7 +184,7 @@ def start(conf, data, model, evaluate):
         )
 
         log.record(
-            'social train loss:%.4f,social val loss:%.4f,social test loss:%.4f' %
+            '   social train loss:%.4f,social val loss:%.4f,social test loss:%.4f' %
             (social_train_loss, social_val_loss, social_test_loss)
         )
 

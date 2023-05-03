@@ -275,6 +275,10 @@ class DataModule():
     # ----------------------
     # This function is designed for the positive data
     def getEvaPositiveBatch(self):
+        """
+        eva就是用测试集做评价集
+        :return:
+        """
         hash_data = self.hash_data
         user_list = []
         item_list = []

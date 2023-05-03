@@ -50,8 +50,13 @@ class Evaluate():
                 index = index + batch_size
             else:
                 batch_user_list = user_list[index:len(user_list)]
-            tmp_hr_list, tmp_ndcg_list = self.getHrNdcgProc(evaluate_index_dict, evaluate_real_rating_matrix, \
-                                                            evaluate_predict_rating_matrix, topK, batch_user_list)
+            tmp_hr_list, tmp_ndcg_list = self.getHrNdcgProc(
+                evaluate_index_dict,
+                evaluate_real_rating_matrix,
+                evaluate_predict_rating_matrix,
+                topK,
+                batch_user_list
+            )
             hr_list.extend(tmp_hr_list)
             ndcg_list.extend(tmp_ndcg_list)
         return np.mean(hr_list), np.mean(ndcg_list)
