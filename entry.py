@@ -7,6 +7,9 @@ from DataUtil import DataUtil
 from Evaluate import Evaluate
 from diffnetplus import diffnetplus
 from mgnn import MGNN
+import train as starter
+import social_train as social_starter
+
 
 def executeTrainModel(config_path, model_name):
     print(config_path)
@@ -14,16 +17,17 @@ def executeTrainModel(config_path, model_name):
     conf = ParserConf(config_path)
     conf.parserConf()
 
-
     model = eval(model_name)
     model = model(conf)
 
-    #print('System start to load data...')
+    # print('System start to load data...')
     data = DataUtil(conf)
     evaluate = Evaluate(conf)
+    if model_name == "MGNN":
+        social_starter.start(conf, data, model, evaluate)
+    else:
+        starter.start(conf, data, model, evaluate)
 
-    import train as starter
-    starter.start(conf, data, model, evaluate)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Welcome to the Experiment Platform Entry')
@@ -37,7 +41,7 @@ if __name__ == "__main__":
 
     model_name = args.model_name
     device_id = args.gpu
-    
+
     if args.gpu:
         os.environ['CUDA_VISIBLE_DEVICES'] = device_id
     config_path = os.path.join(os.getcwd(), 'conf/%s_%s.ini' % (data_name, model_name))
