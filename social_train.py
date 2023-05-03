@@ -59,6 +59,7 @@ def start(conf, data, model, evaluate):
     # Start Training 
     for epoch in range(1, conf.epochs + 1):  # epochs=450
         tmp_train_loss = []
+        social_tmp_train_loss = []
         t0 = time()
         while d_train.terminal_flag:
             d_train.getTrainRankingBatch()
@@ -66,13 +67,16 @@ def start(conf, data, model, evaluate):
             train_feed_dict = {}  # 训练投喂数据
             for (key, value) in model.map_dict['train'].items():
                 train_feed_dict[key] = d_train.data_dict[value]  # {placehoder: data}
-            [sub_train_loss, _] = sess.run(
-                [model.map_dict['out']['train'], model.opt],
+            [sub_train_loss, social_sub_train_loss, _] = sess.run(
+                [model.map_dict['out']['train'], model.map_dict['out']['social_loss'], model.opt],
                 feed_dict=train_feed_dict
             )
             tmp_train_loss.append(sub_train_loss)
+            social_tmp_train_loss.append(social_sub_train_loss)
 
         train_loss = np.mean(tmp_train_loss)
+        social_train_loss = np.mean(social_tmp_train_loss)
+
         logger.info("*" * 10)
         # ----------------------
         # compute val loss and test loss
@@ -83,7 +87,8 @@ def start(conf, data, model, evaluate):
         val_feed_dict = {}  # 验证投喂数据
         for (key, value) in model.map_dict['val'].items():
             val_feed_dict[key] = d_val.data_dict[value]
-        val_loss = sess.run(model.map_dict['out']['val'], feed_dict=val_feed_dict)
+        val_loss, social_val_loss = sess.run([model.map_dict['out']['val'], model.map_dict['out']['social_loss']],
+                                             feed_dict=val_feed_dict)
 
         # 测试集
         d_test.getVTRankingOneBatch()
@@ -91,7 +96,8 @@ def start(conf, data, model, evaluate):
         test_feed_dict = {}  # 测试投喂数据
         for (key, value) in model.map_dict['test'].items():
             test_feed_dict[key] = d_test.data_dict[value]
-        test_loss = sess.run(model.map_dict['out']['test'], feed_dict=test_feed_dict)
+        test_loss, social_test_loss = sess.run([model.map_dict['out']['test'], model.map_dict['out']['social_loss']],
+                                               feed_dict=test_feed_dict)
         t2 = time()
 
         # ----------------------
@@ -176,6 +182,12 @@ def start(conf, data, model, evaluate):
             'Epoch:%d, compute loss cost:%.4fs, train loss:%.4f, val loss:%.4f, test loss:%.4f' %
             (epoch, (t2 - t0), train_loss, val_loss, test_loss)
         )
+
+        log.record(
+            'social train loss:%.4f,social val loss:%.4f,social test loss:%.4f' %
+            (social_train_loss, social_val_loss, social_test_loss)
+        )
+
         log.record(
             'Evaluate cost:%.4fs \n Top5: hr:%.4f, ndcg:%.4f \n Top10: hr:%.4f, ndcg:%.4f \n Top15: hr:%.4f, ndcg:%.4f' %
             ((tt3 - tt2), hr_5, ndcg_5, hr_10, ndcg_10, hr_15, ndcg_15)

@@ -782,7 +782,10 @@ class MGNN():
 
         map_dict['eva'] = {
             self.user_input: 'EVA_USER_LIST',
-            self.item_input: 'EVA_ITEM_LIST'
+            self.item_input: 'EVA_ITEM_LIST',
+
+            # self.social_user_input: 'EVA_USER_LIST',
+            # self.social_friend_input: 'EVA_FRIEND_LIST'
         }
 
         map_dict['out'] = {
@@ -790,6 +793,7 @@ class MGNN():
             'val': self.loss,
             'test': self.loss,
             'eva': self.prediction,
+            'social_loss': self.social_loss
         }
 
         self.map_dict = map_dict
