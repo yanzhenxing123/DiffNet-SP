@@ -81,7 +81,7 @@ def start(conf, data, model, evaluate):
         d_val.getVTRankingOneBatch()
         d_val.linkedMap()
         val_feed_dict = {}  # 验证投喂数据
-        for (key, value) in model.map_dict['val'].items():
+        for (key, value) in model.map_dict['val']['user-item'].items():
             val_feed_dict[key] = d_val.data_dict[value]
         val_loss = sess.run(model.map_dict['out']['val'], feed_dict=val_feed_dict)
 
@@ -89,7 +89,7 @@ def start(conf, data, model, evaluate):
         d_test.getVTRankingOneBatch()
         d_test.linkedMap()
         test_feed_dict = {}  # 测试投喂数据
-        for (key, value) in model.map_dict['test'].items():
+        for (key, value) in model.map_dict['test']['user-item'].items():
             test_feed_dict[key] = d_test.data_dict[value]
         test_loss = sess.run(model.map_dict['out']['test'], feed_dict=test_feed_dict)
         t2 = time()
