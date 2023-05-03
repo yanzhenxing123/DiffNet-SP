@@ -22,6 +22,7 @@ class DataModule():
         self.filename = filename
         self.social_filename = social_filename
         self.index = 0
+        self.social_index = 0
 
     #######  Initalize Procedures #######
     def prepareModelSupplement(self, model):
@@ -74,6 +75,8 @@ class DataModule():
         self.readSocialNeighbors()
         self.getEvaPositiveBatch()
         self.generateEvaNegative()
+        self.getSocialEvaPositiveBatch()
+        self.generateSocialEvaNegative()
 
     def linkedMap(self):
         """
@@ -92,8 +95,16 @@ class DataModule():
         self.data_dict['EVA_USER_LIST'] = self.eva_user_list
         self.data_dict['EVA_ITEM_LIST'] = self.eva_item_list
 
+    def linkedSocialRankingEvaMap(self):
+        self.data_dict['SOCIAL_EVA_USER_LIST'] = self.social_eva_user_list
+        self.data_dict['SOCIAL_EVA_FRIEND_LIST'] = self.social_eva_friend_list
+
     #######  Data Loading #######
     def readData(self):
+        """
+        读取user-item数据
+        :return:
+        """
         f = open(self.filename)
         total_user_list = set()
         hash_data = defaultdict(int)
@@ -104,6 +115,41 @@ class DataModule():
 
         self.total_user_list = list(total_user_list)
         self.hash_data = hash_data
+
+    # ----------------------
+    # Read social network information
+    def readSocialNeighbors(self, friends_flag=1):
+        """
+        读取user-user数据
+        :param friends_flag:
+        :return:
+        """
+        social_neighbors = defaultdict(set)
+        social_neighbors_num_dict = defaultdict(set)
+        social_total_data = set()
+        social_total_user_list = set()
+
+        # links_file = open(self.conf.links_filename)
+        links_file = open(self.social_filename)
+        for _, line in enumerate(links_file):
+            tmp = line.split('\t')
+            u1, u2 = int(tmp[0]), int(tmp[1])
+            social_neighbors[u1].add(u2)
+            social_total_data.add((u1, u2))
+            social_total_user_list.add(u1)
+            if friends_flag == 1:
+                social_neighbors[u2].add(u1)
+                social_total_data.add((u2, u1))
+                social_total_user_list.add(u2)
+
+        user_list = sorted(list(social_neighbors.keys()))
+        for u in range(self.conf.num_users):
+            social_neighbors_num_dict[u] = len(social_neighbors[u]) + 1
+
+        self.social_neighbors_num_dict = social_neighbors_num_dict
+        self.social_neighbors = social_neighbors
+        self.social_total_data = social_total_data
+        self.social_total_user_list = list(social_total_user_list)
 
     def arrangePositiveDataForItemUser(self):
         positive_data_for_item_user = defaultdict(set)
@@ -277,6 +323,7 @@ class DataModule():
     def getEvaPositiveBatch(self):
         """
         eva就是用测试集做评价集
+        得到 user-item positive
         :return:
         """
         hash_data = self.hash_data
@@ -293,11 +340,31 @@ class DataModule():
         self.eva_item_list = np.reshape(item_list, [-1, 1])
         self.eva_index_dict = index_dict
 
+    def getSocialEvaPositiveBatch(self):
+        """
+        eva就是用测试集做评价集
+        得到 user-user positive
+        :return:
+        """
+        social_total_data = self.social_total_data
+        user_list = []
+        friend_list = []
+        index_dict = defaultdict(list)
+        index = 0
+        for (u, i) in social_total_data:
+            user_list.append(u)
+            friend_list.append(i)
+            index_dict[u].append(index)
+            index = index + 1
+        self.social_eva_user_list = np.reshape(user_list, [-1, 1])
+        self.social_eva_friend_list = np.reshape(friend_list, [-1, 1])
+        self.social_eva_index_dict = index_dict
+
     # ----------------------
     # This function is designed for generating negative data
     def generateEvaNegative(self):
         """
-        生成评估的负面数据
+        生成eva的user-item负面数据
         :return:
         """
         hash_data = self.hash_data
@@ -313,9 +380,32 @@ class DataModule():
                 eva_negative_data[u].append(j)
         self.eva_negative_data = eva_negative_data
 
+    def generateSocialEvaNegative(self):
+        """
+        生成eva的user-user负面数据
+        :return:
+        """
+        social_total_data = self.social_total_data
+        social_total_user_list = self.social_total_user_list
+        num_evaluate = self.conf.num_evaluate
+        num_items = self.conf.num_users
+        social_eva_negative_data = defaultdict(list)
+
+        for u in social_total_user_list:
+            for _ in range(num_evaluate):
+                j = np.random.randint(num_items)
+                while (u, j) in social_total_data:
+                    j = np.random.randint(num_items)
+                social_eva_negative_data[u].append(j)
+        self.social_eva_negative_data = social_eva_negative_data
+
     # ----------------------
     # This function designs for generating negative batch in rating evaluation,
     def getEvaRankingBatch(self):
+        """
+        user-item getEvaRankingBatch
+        :return:
+        """
         batch_size = self.conf.evaluate_batch_size  # 2560
         num_evaluate = self.conf.num_evaluate  # 1000
         eva_negative_data = self.eva_negative_data  # 负面数据
@@ -339,31 +429,35 @@ class DataModule():
         self.eva_item_list = np.reshape(item_list, [-1, 1])
         return batch_user_list, terminal_flag
 
-    # ----------------------
-    # Read social network information
-    def readSocialNeighbors(self, friends_flag=1):
-        social_neighbors = defaultdict(set)
-        social_neighbors_num_dict = defaultdict(set)
-        social_total_data = set()
 
-        # links_file = open(self.conf.links_filename)
-        links_file = open(self.social_filename)
-        for _, line in enumerate(links_file):
-            tmp = line.split('\t')
-            u1, u2 = int(tmp[0]), int(tmp[1])
-            social_neighbors[u1].add(u2)
-            social_total_data.add((u1, u2))
-            if friends_flag == 1:
-                social_neighbors[u2].add(u1)
-                social_total_data.add((u2, u1))
+    def getSocialEvaRankingBatch(self):
+        """
+        user-user getSocialEvaRankingBatch
+        :return:
+        """
+        batch_size = self.conf.evaluate_batch_size  # 2560
+        num_evaluate = self.conf.num_evaluate  # 1000
+        social_eva_negative_data = self.social_eva_negative_data  # 负面数据
+        social_total_user_list = self.social_total_user_list
 
-        user_list = sorted(list(social_neighbors.keys()))
-        for u in range(self.conf.num_users):
-            social_neighbors_num_dict[u] = len(social_neighbors[u]) + 1
-
-        self.social_neighbors_num_dict = social_neighbors_num_dict
-        self.social_neighbors = social_neighbors
-        self.social_total_data = social_total_data
+        index = self.social_index
+        terminal_flag = 1
+        total_users = len(social_total_user_list)
+        user_list = []
+        friend_list = []
+        if index + batch_size < total_users:
+            batch_user_list = social_total_user_list[index:index + batch_size]
+            self.social_index = index + batch_size
+        else:
+            terminal_flag = 0  # 停止
+            batch_user_list = social_total_user_list[index:total_users]
+            self.social_index = 0
+        for u in batch_user_list:
+            user_list.extend([u] * num_evaluate)
+            friend_list.extend(social_eva_negative_data[u])
+        self.social_eva_user_list = np.reshape(user_list, [-1, 1])
+        self.social_eva_friend_list = np.reshape(friend_list, [-1, 1])
+        return batch_user_list, terminal_flag
 
     def arrangePositiveData(self):
         positive_data = defaultdict(set)

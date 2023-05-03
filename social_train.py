@@ -77,7 +77,6 @@ def start(conf, data, model, evaluate):
         train_loss = np.mean(tmp_train_loss)
         social_train_loss = np.mean(social_tmp_train_loss)
 
-        logger.info("*" * 10)
         # ----------------------
         # compute val loss and test loss
 
@@ -98,19 +97,22 @@ def start(conf, data, model, evaluate):
             test_feed_dict[key] = d_test.data_dict[value]
         test_loss, social_test_loss = sess.run([model.map_dict['out']['test'], model.map_dict['out']['social_loss']],
                                                feed_dict=test_feed_dict)
+        logger.info("*" * 10 + "finish train val test" + "*" * 10)
+
         t2 = time()
 
         # ----------------------
         # start evaluate model performance, hr and ndcg
         def getPositivePredictions():
             """
+            user-item
             正面样本预测
             :return:
             """
             d_test_eva.getEvaPositiveBatch()
             d_test_eva.linkedRankingEvaMap()
             eva_feed_dict = {}
-            for (key, value) in model.map_dict['eva'].items():
+            for (key, value) in model.map_dict['eva']['user-item'].items():
                 eva_feed_dict[key] = d_test_eva.data_dict[value]
             positive_predictions = sess.run(
                 model.map_dict['out']['eva'],
@@ -120,6 +122,7 @@ def start(conf, data, model, evaluate):
 
         def getNegativePredictions():
             """
+            user-item
             负面样本预测
             :return:
             """
@@ -129,7 +132,7 @@ def start(conf, data, model, evaluate):
                 batch_user_list, terminal_flag = d_test_eva.getEvaRankingBatch()
                 d_test_eva.linkedRankingEvaMap()
                 eva_feed_dict = {}
-                for (key, value) in model.map_dict['eva'].items():
+                for (key, value) in model.map_dict['eva']['user-item'].items():
                     eva_feed_dict[key] = d_test_eva.data_dict[value]
                 index = 0
                 tmp_negative_predictions = np.reshape(
@@ -176,6 +179,81 @@ def start(conf, data, model, evaluate):
 
         tt3 = time()
 
+        def getSocialPositivePredictions():
+            """
+            user-user
+            正面样本预测
+            :return:
+            """
+            d_test_eva.getSocialEvaPositiveBatch()
+            d_test_eva.linkedSocialRankingEvaMap()
+            eva_feed_dict = {}
+            for (key, value) in model.map_dict['eva']['user-user'].items():
+                eva_feed_dict[key] = d_test_eva.data_dict[value]
+            social_positive_predictions = sess.run(
+                model.map_dict['out']['social_eva'],
+                feed_dict=eva_feed_dict
+            )
+            return social_positive_predictions
+
+        def getSocialNegativePredictions():
+            """
+            user-item
+            负面样本预测
+            :return:
+            """
+            social_negative_predictions = {}
+            terminal_flag = 1
+            while terminal_flag:
+                batch_user_list, terminal_flag = d_test_eva.getSocialEvaRankingBatch()
+                d_test_eva.linkedSocialRankingEvaMap()
+                eva_feed_dict = {}
+                for (key, value) in model.map_dict['eva']['user-user'].items():
+                    eva_feed_dict[key] = d_test_eva.data_dict[value]
+                index = 0
+                tmp_negative_predictions = np.reshape(
+                    sess.run(
+                        model.map_dict['out']['social_eva'],
+                        feed_dict=eva_feed_dict
+                    ), [-1, conf.num_evaluate]  # [-1, 1000]
+                )
+                for u in batch_user_list:
+                    social_negative_predictions[u] = tmp_negative_predictions[index]
+                    index = index + 1
+            return social_negative_predictions
+
+        social_index_dict = d_test_eva.social_eva_index_dict
+        social_positive_predictions = getSocialPositivePredictions()
+        social_negative_predictions = getSocialNegativePredictions()
+
+        # prepare for new batch
+        d_test_eva.social_index = 0
+
+        social_hr_5, social_ndcg_5 = evaluate.evaluateRankingPerformance(
+            evaluate_index_dict=social_index_dict,
+            evaluate_real_rating_matrix=social_positive_predictions,
+            evaluate_predict_rating_matrix=social_negative_predictions,
+            topK=conf.top5,
+            num_procs=conf.num_procs
+        )
+        social_hr_10, social_ndcg_10 = evaluate.evaluateRankingPerformance(
+            evaluate_index_dict=social_index_dict,
+            evaluate_real_rating_matrix=social_positive_predictions,
+            evaluate_predict_rating_matrix=social_negative_predictions,
+            topK=conf.top10,
+            num_procs=conf.num_procs
+        )
+        social_hr_15, social_ndcg_15 = evaluate.evaluateRankingPerformance(
+            evaluate_index_dict=social_index_dict,
+            evaluate_real_rating_matrix=social_positive_predictions,
+            evaluate_predict_rating_matrix=social_negative_predictions,
+            topK=conf.top15,
+            num_procs=conf.num_procs
+        )
+        logger.info("*" * 10 + "finish evaluate" + "*" * 10)
+
+        tt4 = time()
+
         # ----------------------
         # print log to console and log_file
         log.record(
@@ -191,6 +269,11 @@ def start(conf, data, model, evaluate):
         log.record(
             'Evaluate cost:%.4fs \n Top5: hr:%.4f, ndcg:%.4f \n Top10: hr:%.4f, ndcg:%.4f \n Top15: hr:%.4f, ndcg:%.4f' %
             ((tt3 - tt2), hr_5, ndcg_5, hr_10, ndcg_10, hr_15, ndcg_15)
+        )
+
+        log.record(
+            'Social Evaluate cost:%.4fs \n Top5: social_hr:%.4f, social_ndcg:%.4f \n Top10: social_hr:%.4f, social_ndcg:%.4f \n Top15: social_hr:%.4f, social_ndcg:%.4f' %
+            ((tt4 - tt3), social_hr_5, social_ndcg_5, social_hr_10, social_ndcg_10, social_hr_15, social_ndcg_15)
         )
 
         d_train.generateTrainNegative()  # 只生成训练集的负面数据
