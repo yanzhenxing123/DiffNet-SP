@@ -525,10 +525,10 @@ class diffnetplus():
 
         # ----------------------
         # First Layer
-        user_embedding_from_consumed_items = self.generateUserEmebddingFromConsumedItems1(
+        user_embedding_from_consumed_items = self.generateUserEmebddingFromConsumedItems1(  # u-i * item_embedding
             self.fusion_item_embedding
         )  # shape=(17237, 64)
-        user_embedding_from_social_neighbors = self.generateUserEmbeddingFromSocialNeighbors1(
+        user_embedding_from_social_neighbors = self.generateUserEmbeddingFromSocialNeighbors1(  # u-u x user_embedding
             self.fusion_user_embedding
         )  # shape=(17237, 64)
 
@@ -595,11 +595,11 @@ class diffnetplus():
 
         # ----------------------
         # Second Layer
-        user_embedding_from_consumed_items = self.generateUserEmebddingFromConsumedItems2(
+        user_embedding_from_consumed_items = self.generateUserEmebddingFromConsumedItems2(  # u-i x item_embedding
             first_gcn_item_embedding
         )  # shape=(17237, 64)
 
-        user_embedding_from_social_neighbors = self.generateUserEmbeddingFromSocialNeighbors2(
+        user_embedding_from_social_neighbors = self.generateUserEmbeddingFromSocialNeighbors2(  # u-u x user_embedding
             first_gcn_user_embedding
         )  # shape=(17237, 64)
 
